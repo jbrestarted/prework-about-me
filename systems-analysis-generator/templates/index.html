@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Systems Analysis Document Generator</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <header class="app-header">
+        <h1>Systems Analysis Document Generator</h1>
+        <p>Fill in the sections below to generate a professional Word document</p>
+    </header>
+
+    <div class="container">
+        <!-- Progress bar -->
+        <nav class="progress-bar" id="progressBar"></nav>
+
+        <form action="/generate" method="post" id="saForm">
+
+            <!-- 0 · Document Info -->
+            <div class="form-section" data-section="Document Info">
+                <div class="section-header" onclick="toggleSection(this)">
+                    <span>Document Information</span>
+                    <span class="toggle-icon">&#9660;</span>
+                </div>
+                <div class="section-body">
+                    <div class="form-group">
+                        <label>Project Name</label>
+                        <input type="text" name="project_name" placeholder="e.g. Inventory Management System">
+                    </div>
+                    <div class="row">
+                        <div class="form-group">
+                            <label>Author</label>
+                            <input type="text" name="author" placeholder="Your name">
+                        </div>
+                        <div class="form-group">
+                            <label>Organization</label>
+                            <input type="text" name="organization" placeholder="Company or team">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="form-group">
+                            <label>Date</label>
+                            <input type="date" name="document_date" value="{{ today }}">
+                        </div>
+                        <div class="form-group">
+                            <label>Version</label>
+                            <input type="text" name="version" value="1.0">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 1 · Executive Summary -->
+            <div class="form-section" data-section="Executive Summary">
+                <div class="section-header" onclick="toggleSection(this)">
+                    <span>1. Executive Summary</span>
+                    <span class="toggle-icon">&#9660;</span>
+                </div>
+                <div class="section-body">
+                    <div class="form-group">
+                        <label>
+                            Executive Summary
+                            <span class="hint">High-level overview of the project, its purpose, and key recommendations.</span>
+                        </label>
+                        <textarea name="executive_summary" rows="5" placeholder="Provide a brief overview of this systems analysis..."></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2 · Introduction -->
+            <div class="form-section" data-section="Introduction">
+                <div class="section-header" onclick="toggleSection(this)">
+                    <span>2. Introduction</span>
+                    <span class="toggle-icon">&#9660;</span>
+                </div>
+                <div class="section-body">
+                    <div class="form-group">
+                        <label>
+                            Purpose
+                            <span class="hint">Why does this document exist? What problem does it address?</span>
+                        </label>
+                        <textarea name="purpose" rows="3" placeholder="Describe the purpose of this analysis..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            Scope
+                            <span class="hint">What is included and excluded from this analysis?</span>
+                        </label>
+                        <textarea name="scope" rows="3" placeholder="Define the boundaries of this analysis..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            Definitions &amp; Acronyms
+                            <span class="hint">One per line. Define terms and abbreviations used in this document.</span>
+                        </label>
+                        <textarea name="definitions" rows="3" placeholder="API — Application Programming Interface&#10;SLA — Service Level Agreement"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3 · Current System -->
+            <div class="form-section" data-section="Current System">
+                <div class="section-header" onclick="toggleSection(this)">
+                    <span>3. Current System Overview</span>
+                    <span class="toggle-icon">&#9660;</span>
+                </div>
+                <div class="section-body">
+                    <div class="form-group">
+                        <label>
+                            Current System Description
+                            <span class="hint">Describe the existing system or process being analyzed.</span>
+                        </label>
+                        <textarea name="current_system_description" rows="4" placeholder="Describe the current system..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            Current System Limitations
+                            <span class="hint">One per line. What are the pain points or shortcomings?</span>
+                        </label>
+                        <textarea name="current_system_limitations" rows="4" placeholder="Manual data entry leads to errors&#10;No real-time reporting capability"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4 · Proposed System -->
+            <div class="form-section" data-section="Proposed System">
+                <div class="section-header" onclick="toggleSection(this)">
+                    <span>4. Proposed System</span>
+                    <span class="toggle-icon">&#9660;</span>
+                </div>
+                <div class="section-body">
+                    <div class="form-group">
+                        <label>
+                            System Overview
+                            <span class="hint">Describe the proposed solution at a high level.</span>
+                        </label>
+                        <textarea name="proposed_system_overview" rows="4" placeholder="Describe the proposed system..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            Goals &amp; Objectives
+                            <span class="hint">One per line. What will this system achieve?</span>
+                        </label>
+                        <textarea name="system_goals" rows="4" placeholder="Automate order processing&#10;Reduce manual errors by 90%&#10;Provide real-time analytics"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 5 · Requirements -->
+            <div class="form-section" data-section="Requirements">
+                <div class="section-header" onclick="toggleSection(this)">
+                    <span>5. Requirements</span>
+                    <span class="toggle-icon">&#9660;</span>
+                </div>
+                <div class="section-body">
+                    <div class="form-group">
+                        <label>
+                            Functional Requirements
+                            <span class="hint">One per line. What must the system do?</span>
+                        </label>
+                        <textarea name="functional_requirements" rows="5" placeholder="The system shall allow users to create accounts&#10;The system shall generate monthly reports&#10;The system shall send email notifications"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            Non-Functional Requirements
+                            <span class="hint">One per line. Performance, scalability, availability, etc.</span>
+                        </label>
+                        <textarea name="nonfunctional_requirements" rows="5" placeholder="The system shall respond within 2 seconds&#10;The system shall support 1000 concurrent users&#10;The system shall have 99.9% uptime"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 6 · Architecture -->
+            <div class="form-section" data-section="Architecture">
+                <div class="section-header" onclick="toggleSection(this)">
+                    <span>6. System Architecture</span>
+                    <span class="toggle-icon">&#9660;</span>
+                </div>
+                <div class="section-body">
+                    <div class="form-group">
+                        <label>
+                            Architecture Overview
+                            <span class="hint">Describe the overall system architecture (client-server, microservices, etc.).</span>
+                        </label>
+                        <textarea name="architecture_overview" rows="4" placeholder="Describe the system architecture..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            Technology Stack
+                            <span class="hint">One per line. List technologies, frameworks, and tools.</span>
+                        </label>
+                        <textarea name="technology_stack" rows="4" placeholder="Frontend: React 18&#10;Backend: Python / FastAPI&#10;Database: PostgreSQL 15&#10;Hosting: AWS ECS"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            Data Flow Description
+                            <span class="hint">Describe how data moves through the system.</span>
+                        </label>
+                        <textarea name="data_flow" rows="3" placeholder="Describe data flow..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            Integration Points
+                            <span class="hint">External systems, APIs, or services this system connects to.</span>
+                        </label>
+                        <textarea name="integration_points" rows="3" placeholder="Describe integration points..."></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 7 · Data Requirements -->
+            <div class="form-section" data-section="Data">
+                <div class="section-header" onclick="toggleSection(this)">
+                    <span>7. Data Requirements</span>
+                    <span class="toggle-icon">&#9660;</span>
+                </div>
+                <div class="section-body">
+                    <div class="form-group">
+                        <label>
+                            Data Entities
+                            <span class="hint">Key data entities / models and their relationships.</span>
+                        </label>
+                        <textarea name="data_entities" rows="4" placeholder="Describe key data entities..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            Data Storage &amp; Retention
+                            <span class="hint">Where data is stored, backup strategy, retention policies.</span>
+                        </label>
+                        <textarea name="data_storage" rows="3" placeholder="Describe storage and retention..."></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 8 · UI Requirements -->
+            <div class="form-section" data-section="UI">
+                <div class="section-header" onclick="toggleSection(this)">
+                    <span>8. User Interface Requirements</span>
+                    <span class="toggle-icon">&#9660;</span>
+                </div>
+                <div class="section-body">
+                    <div class="form-group">
+                        <label>
+                            UI Requirements
+                            <span class="hint">Describe user interface needs, key screens, accessibility requirements.</span>
+                        </label>
+                        <textarea name="ui_requirements" rows="5" placeholder="Describe UI requirements..."></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 9 · Security -->
+            <div class="form-section" data-section="Security">
+                <div class="section-header" onclick="toggleSection(this)">
+                    <span>9. Security Requirements</span>
+                    <span class="toggle-icon">&#9660;</span>
+                </div>
+                <div class="section-body">
+                    <div class="form-group">
+                        <label>
+                            Security Requirements
+                            <span class="hint">Authentication, authorization, encryption, compliance (GDPR, HIPAA, etc.).</span>
+                        </label>
+                        <textarea name="security_requirements" rows="5" placeholder="Describe security requirements..."></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 10 · Stakeholders -->
+            <div class="form-section" data-section="Stakeholders">
+                <div class="section-header" onclick="toggleSection(this)">
+                    <span>10. Stakeholder Analysis</span>
+                    <span class="toggle-icon">&#9660;</span>
+                </div>
+                <div class="section-body">
+                    <div class="form-group">
+                        <label>
+                            Stakeholders
+                            <span class="hint">One per line, pipe-separated: Name | Role | Interest<br>
+                            Example: John Smith | Project Sponsor | Budget approval</span>
+                        </label>
+                        <textarea name="stakeholders" rows="4" placeholder="John Smith | Project Sponsor | Budget approval&#10;Jane Doe | End User | Daily operations&#10;IT Team | Technical Lead | Architecture decisions"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 11 · Risks -->
+            <div class="form-section" data-section="Risks">
+                <div class="section-header" onclick="toggleSection(this)">
+                    <span>11. Risk Assessment</span>
+                    <span class="toggle-icon">&#9660;</span>
+                </div>
+                <div class="section-body">
+                    <div class="form-group">
+                        <label>
+                            Risks
+                            <span class="hint">One per line, pipe-separated: Risk | Likelihood | Impact | Mitigation<br>
+                            Example: Data migration failure | Medium | High | Run parallel systems for 30 days</span>
+                        </label>
+                        <textarea name="risks" rows="4" placeholder="Data migration failure | Medium | High | Run parallel systems for 30 days&#10;Vendor lock-in | Low | Medium | Use open standards and abstractions"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 12 · Cost-Benefit -->
+            <div class="form-section" data-section="Cost-Benefit">
+                <div class="section-header" onclick="toggleSection(this)">
+                    <span>12. Cost-Benefit Analysis</span>
+                    <span class="toggle-icon">&#9660;</span>
+                </div>
+                <div class="section-body">
+                    <div class="form-group">
+                        <label>Estimated Costs</label>
+                        <textarea name="estimated_costs" rows="3" placeholder="Describe estimated costs (development, infrastructure, licensing, training)..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Expected Benefits</label>
+                        <textarea name="expected_benefits" rows="3" placeholder="Describe expected benefits (ROI, efficiency gains, revenue impact)..."></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 13 · Timeline -->
+            <div class="form-section" data-section="Timeline">
+                <div class="section-header" onclick="toggleSection(this)">
+                    <span>13. Implementation Timeline</span>
+                    <span class="toggle-icon">&#9660;</span>
+                </div>
+                <div class="section-body">
+                    <div class="form-group">
+                        <label>
+                            Timeline
+                            <span class="hint">One per line, pipe-separated: Phase | Duration | Deliverables<br>
+                            Example: Phase 1 — Discovery | 4 weeks | Requirements document</span>
+                        </label>
+                        <textarea name="timeline" rows="5" placeholder="Phase 1 — Discovery | 4 weeks | Requirements document&#10;Phase 2 — Design | 6 weeks | Architecture diagrams, UI mockups&#10;Phase 3 — Development | 12 weeks | Working application&#10;Phase 4 — Testing | 4 weeks | Test reports, bug fixes&#10;Phase 5 — Deployment | 2 weeks | Production release"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 14 · Testing -->
+            <div class="form-section" data-section="Testing">
+                <div class="section-header" onclick="toggleSection(this)">
+                    <span>14. Testing Strategy</span>
+                    <span class="toggle-icon">&#9660;</span>
+                </div>
+                <div class="section-body">
+                    <div class="form-group">
+                        <label>
+                            Testing Strategy
+                            <span class="hint">Describe testing approach: unit tests, integration tests, UAT, performance testing, etc.</span>
+                        </label>
+                        <textarea name="testing_strategy" rows="5" placeholder="Describe the testing strategy..."></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 15 · Assumptions & Constraints -->
+            <div class="form-section" data-section="Constraints">
+                <div class="section-header" onclick="toggleSection(this)">
+                    <span>15. Assumptions &amp; Constraints</span>
+                    <span class="toggle-icon">&#9660;</span>
+                </div>
+                <div class="section-body">
+                    <div class="form-group">
+                        <label>
+                            Assumptions
+                            <span class="hint">One per line. What is assumed to be true for this analysis?</span>
+                        </label>
+                        <textarea name="assumptions" rows="3" placeholder="Existing infrastructure can support new system&#10;Stakeholders will be available for UAT"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            Constraints
+                            <span class="hint">One per line. Budget, time, technology, or regulatory constraints.</span>
+                        </label>
+                        <textarea name="constraints" rows="3" placeholder="Budget limited to $150,000&#10;Must launch before Q4 2026&#10;Must comply with GDPR"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 16 · Recommendations -->
+            <div class="form-section" data-section="Recommendations">
+                <div class="section-header" onclick="toggleSection(this)">
+                    <span>16. Recommendations</span>
+                    <span class="toggle-icon">&#9660;</span>
+                </div>
+                <div class="section-body">
+                    <div class="form-group">
+                        <label>
+                            Recommendations
+                            <span class="hint">Your conclusions and recommended next steps.</span>
+                        </label>
+                        <textarea name="recommendations" rows="5" placeholder="Based on this analysis, we recommend..."></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 17 · Appendices -->
+            <div class="form-section" data-section="Appendices">
+                <div class="section-header" onclick="toggleSection(this)">
+                    <span>17. Appendices</span>
+                    <span class="toggle-icon">&#9660;</span>
+                </div>
+                <div class="section-body">
+                    <div class="form-group">
+                        <label>
+                            Appendices
+                            <span class="hint">Additional supporting material, references, or detailed data.</span>
+                        </label>
+                        <textarea name="appendices" rows="4" placeholder="Any supplementary information..."></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" class="btn-generate">Generate Systems Analysis Document</button>
+        </form>
+    </div>
+
+    <footer class="app-footer">
+        Systems Analysis Document Generator &mdash; Built with Python, FastAPI &amp; python-docx
+    </footer>
+
+    <script>
+        // Toggle section collapse
+        function toggleSection(header) {
+            const body = header.nextElementSibling;
+            body.classList.toggle("hidden");
+            header.classList.toggle("collapsed");
+        }
+
+        // Build progress bar from section names
+        (function () {
+            const sections = document.querySelectorAll(".form-section");
+            const bar = document.getElementById("progressBar");
+            sections.forEach(function (sec, i) {
+                const name = sec.getAttribute("data-section");
+                const step = document.createElement("span");
+                step.className = "progress-step";
+                step.textContent = name;
+                step.addEventListener("click", function () {
+                    sec.scrollIntoView({ behavior: "smooth", block: "start" });
+                });
+                bar.appendChild(step);
+            });
+
+            // Highlight active section on scroll
+            function updateProgress() {
+                const scrollY = window.scrollY + 150;
+                let activeIndex = 0;
+                sections.forEach(function (sec, i) {
+                    if (sec.offsetTop <= scrollY) {
+                        activeIndex = i;
+                    }
+                });
+                document.querySelectorAll(".progress-step").forEach(function (step, i) {
+                    step.classList.toggle("active", i === activeIndex);
+                });
+            }
+            window.addEventListener("scroll", updateProgress);
+            updateProgress();
+        })();
+    </script>
+</body>
+</html>
