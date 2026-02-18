@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Systems Analysis Document Generator</title>
+    <script src="https://unpkg.com/docx@9.1.1/build/index.umd.js"></script>
+    <script src="https://unpkg.com/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+    <style>
+        :root {
+            --primary: #2E4057;
+            --primary-light: #3d5a80;
+            --accent: #ee6c4d;
+            --bg: #f8f9fa;
+            --card-bg: #ffffff;
+            --text: #222222;
+            --text-muted: #666666;
+            --border: #dee2e6;
+            --radius: 8px;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: "Segoe UI", "Open Sans", system-ui, -apple-system, sans-serif;
+            background: var(--bg); color: var(--text); line-height: 1.6;
+        }
+        .app-header {
+            background: var(--primary); color: #fff;
+            padding: 2rem 1rem; text-align: center;
+        }
+        .app-header h1 { font-size: 1.8rem; font-weight: 700; margin-bottom: 0.25rem; }
+        .app-header p { font-size: 0.95rem; opacity: 0.85; }
+        .container { max-width: 860px; margin: 0 auto; padding: 2rem 1rem 4rem; }
+        .form-section {
+            background: var(--card-bg); border: 1px solid var(--border);
+            border-radius: var(--radius); margin-bottom: 1.5rem; overflow: hidden;
+        }
+        .section-header {
+            background: var(--primary); color: #fff; padding: 0.75rem 1.25rem;
+            font-size: 1rem; font-weight: 600; cursor: pointer;
+            display: flex; justify-content: space-between; align-items: center;
+            user-select: none;
+        }
+        .section-header:hover { background: var(--primary-light); }
+        .section-header .toggle-icon { font-size: 0.75rem; transition: transform 0.2s; }
+        .section-header.collapsed .toggle-icon { transform: rotate(-90deg); }
+        .section-body { padding: 1.25rem; }
+        .section-body.hidden { display: none; }
+        .form-group { margin-bottom: 1.25rem; }
+        .form-group:last-child { margin-bottom: 0; }
+        label {
+            display: block; font-weight: 600; font-size: 0.875rem;
+            margin-bottom: 0.35rem; color: var(--primary);
+        }
+        label .hint {
+            font-weight: 400; font-size: 0.8rem; color: var(--text-muted);
+            display: block; margin-top: 0.15rem;
+        }
+        input[type="text"], input[type="date"] {
+            width: 100%; padding: 0.6rem 0.75rem; border: 1px solid var(--border);
+            border-radius: 4px; font-size: 0.95rem; font-family: inherit;
+        }
+        input:focus, textarea:focus {
+            outline: none; border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(46,64,87,0.1);
+        }
+        textarea {
+            width: 100%; padding: 0.6rem 0.75rem; border: 1px solid var(--border);
+            border-radius: 4px; font-size: 0.95rem; font-family: inherit;
+            resize: vertical; min-height: 100px;
+        }
+        .row { display: flex; gap: 1rem; }
+        .row .form-group { flex: 1; }
+        .btn-generate {
+            display: block; width: 100%; padding: 1rem;
+            background: var(--accent); color: #fff; border: none;
+            border-radius: var(--radius); font-size: 1.1rem; font-weight: 700;
+            cursor: pointer; letter-spacing: 0.02em;
+        }
+        .btn-generate:hover { background: #d95b3e; }
+        .btn-generate:active { transform: scale(0.99); }
+        .btn-generate:disabled { background: #aaa; cursor: wait; }
+        .progress-bar {
+            display: flex; justify-content: center; gap: 0.5rem;
+            margin-bottom: 2rem; flex-wrap: wrap;
+        }
+        .progress-step {
+            font-size: 0.75rem; padding: 0.3rem 0.65rem; background: var(--border);
+            border-radius: 20px; color: var(--text-muted); cursor: pointer;
+        }
+        .progress-step.active { background: var(--primary); color: #fff; }
+        .progress-step:hover { background: var(--primary-light); color: #fff; }
+        .app-footer {
+            text-align: center; padding: 1.5rem; font-size: 0.85rem; color: var(--text-muted);
+        }
+        @media (max-width: 600px) {
+            .row { flex-direction: column; gap: 0; }
+            .app-header h1 { font-size: 1.4rem; }
+            .container { padding: 1rem 0.5rem 3rem; }
+        }
+    </style>
+</head>
+<body>
+    <header class="app-header">
+        <h1>Systems Analysis Document Generator</h1>
+        <p>Fill in the sections below to generate a professional Word document</p>
+    </header>
+
+    <div class="container">
+        <nav class="progress-bar" id="progressBar"></nav>
+
+        <form id="saForm" onsubmit="return handleGenerate(event)">
+
+            <!-- Document Info -->
+            <div class="form-section" data-section="Document Info">
+                <div class="section-header" onclick="toggleSection(this)">
+                    <span>Document Information</span>
+                    <span class="toggle-icon">&#9660;</span>
+                </div>
+                <div class="section-body">
+                    <div class="form-group">
+                        <label>Project Name</label>
+                        <input type="text" id="project_name" placeholder="e.g. Inventory Management System">
+                    </div>
+                    <div class="row">
+                        <div class="form-group">
+                            <label>Author</label>
+                            <input type="text" id="author" placeholder="Your name">
+                        </div>
+                        <div class="form-group">
+                            <label>Organization</label>
+                            <input type="text" id="organization" placeholder="Company or team">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="form-group">
+                            <label>Date</label>
+                            <input type="date" id="document_date">
+                        </div>
+                        <div class="form-group">
+                            <label>Version</label>
+                            <input type="text" id="version" value="1.0">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 1. Executive Summary -->
+            <div class="form-section" data-section="Executive Summary">
+                <div class="section-header" onclick="toggleSection(this)">
+                    <span>1. Executive Summary</span>
+                    <span class="toggle-icon">&#9660;</span>
+                </div>
+                <div class="section-body">
+                    <div class="form-group">
+                        <label>Executive Summary
+                            <span class="hint">High-level overview of the project, its purpose, and key recommendations.</span>
+                        </label>
+                        <textarea id="executive_summary" rows="5" placeholder="Provide a brief overview of this systems analysis..."></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Introduction -->
+            <div class="form-section" data-section="Introduction">
+                <div class="section-header" onclick="toggleSection(this)">
+                    <span>2. Introduction</span>
+                    <span class="toggle-icon">&#9660;</span>
+                </div>
+                <div class="section-body">
+                    <div class="form-group">
+                        <label>Purpose <span class="hint">Why does this document exist? What problem does it address?</span></label>
+                        <textarea id="purpose" rows="3" placeholder="Describe the purpose of this analysis..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Scope <span class="hint">What is included and excluded from this analysis?</span></label>
+                        <textarea id="scope" rows="3" placeholder="Define the boundaries of this analysis..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Definitions &amp; Acronyms <span class="hint">One per line.</span></label>
+                        <textarea id="definitions" rows="3" placeholder="API — Application Programming Interface&#10;SLA — Service Level Agreement"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. Current System -->
+            <div class="form-section" data-section="Current System">
+                <div class="section-header" onclick="toggleSection(this)">
+                    <span>3. Current System Overview</span>
+                    <span class="toggle-icon">&#9660;</span>
+                </div>
+                <div class="section-body">
+                    <div class="form-group">
+                        <label>Current System Description <span class="hint">Describe the existing system or process.</span></label>
+                        <textarea id="current_system_description" rows="4" placeholder="Describe the current system..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Current System Limitations <span class="hint">One per line.</span></label>
+                        <textarea id="current_system_limitations" rows="4" placeholder="Manual data entry leads to errors&#10;No real-time reporting"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. Proposed System -->
+            <div class="form-section" data-section="Proposed System">
+                <div class="section-header" onclick="toggleSection(this)">
+                    <span>4. Proposed System</span>
+                    <span class="toggle-icon">&#9660;</span>
+                </div>
+                <div class="section-body">
+                    <div class="form-group">
+                        <label>System Overview <span class="hint">Describe the proposed solution at a high level.</span></label>
+                        <textarea id="proposed_system_overview" rows="4" placeholder="Describe the proposed system..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Goals &amp; Objectives <span class="hint">One per line.</span></label>
+                        <textarea id="system_goals" rows="4" placeholder="Automate order processing&#10;Reduce errors by 90%"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 5. Requirements -->
+            <div class="form-section" data-section="Requirements">
+                <div class="section-header" onclick="toggleSection(this)">
+                    <span>5. Requirements</span>
+                    <span class="toggle-icon">&#9660;</span>
+                </div>
+                <div class="section-body">
+                    <div class="form-group">
+                        <label>Functional Requirements <span class="hint">One per line. What must the system do?</span></label>
+                        <textarea id="functional_requirements" rows="5" placeholder="The system shall allow users to create accounts&#10;The system shall generate monthly reports"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Non-Functional Requirements <span class="hint">One per line. Performance, scalability, etc.</span></label>
+                        <textarea id="nonfunctional_requirements" rows="5" placeholder="Response time under 2 seconds&#10;99.9% uptime"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 6. Architecture -->
+            <div class="form-section" data-section="Architecture">
+                <div class="section-header" onclick="toggleSection(this)">
+                    <span>6. System Architecture</span>
+                    <span class="toggle-icon">&#9660;</span>
+                </div>
+                <div class="section-body">
+                    <div class="form-group">
+                        <label>Architecture Overview</label>
+                        <textarea id="architecture_overview" rows="4" placeholder="Describe the system architecture..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Technology Stack <span class="hint">One per line.</span></label>
+                        <textarea id="technology_stack" rows="4" placeholder="Frontend: React 18&#10;Backend: Python / FastAPI&#10;Database: PostgreSQL 15"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Data Flow Description</label>
+                        <textarea id="data_flow" rows="3" placeholder="Describe data flow..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Integration Points</label>
+                        <textarea id="integration_points" rows="3" placeholder="External systems, APIs, or services..."></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 7. Data Requirements -->
+            <div class="form-section" data-section="Data">
+                <div class="section-header" onclick="toggleSection(this)">
+                    <span>7. Data Requirements</span>
+                    <span class="toggle-icon">&#9660;</span>
+                </div>
+                <div class="section-body">
+                    <div class="form-group">
+                        <label>Data Entities</label>
+                        <textarea id="data_entities" rows="4" placeholder="Key data entities and relationships..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Data Storage &amp; Retention</label>
+                        <textarea id="data_storage" rows="3" placeholder="Storage, backup, retention policies..."></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 8. UI Requirements -->
+            <div class="form-section" data-section="UI">
+                <div class="section-header" onclick="toggleSection(this)">
+                    <span>8. User Interface Requirements</span>
+                    <span class="toggle-icon">&#9660;</span>
+                </div>
+                <div class="section-body">
+                    <div class="form-group">
+                        <label>UI Requirements</label>
+                        <textarea id="ui_requirements" rows="5" placeholder="Interface needs, key screens, accessibility..."></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 9. Security -->
+            <div class="form-section" data-section="Security">
+                <div class="section-header" onclick="toggleSection(this)">
+                    <span>9. Security Requirements</span>
+                    <span class="toggle-icon">&#9660;</span>
+                </div>
+                <div class="section-body">
+                    <div class="form-group">
+                        <label>Security Requirements</label>
+                        <textarea id="security_requirements" rows="5" placeholder="Authentication, authorization, encryption, compliance..."></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 10. Stakeholders -->
+            <div class="form-section" data-section="Stakeholders">
+                <div class="section-header" onclick="toggleSection(this)">
+                    <span>10. Stakeholder Analysis</span>
+                    <span class="toggle-icon">&#9660;</span>
+                </div>
+                <div class="section-body">
+                    <div class="form-group">
+                        <label>Stakeholders
+                            <span class="hint">One per line, pipe-separated: Name | Role | Interest</span>
+                        </label>
+                        <textarea id="stakeholders" rows="4" placeholder="John Smith | Project Sponsor | Budget approval&#10;Jane Doe | End User | Daily operations"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 11. Risks -->
+            <div class="form-section" data-section="Risks">
+                <div class="section-header" onclick="toggleSection(this)">
+                    <span>11. Risk Assessment</span>
+                    <span class="toggle-icon">&#9660;</span>
+                </div>
+                <div class="section-body">
+                    <div class="form-group">
+                        <label>Risks
+                            <span class="hint">One per line, pipe-separated: Risk | Likelihood | Impact | Mitigation</span>
+                        </label>
+                        <textarea id="risks" rows="4" placeholder="Data migration failure | Medium | High | Run parallel systems for 30 days"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 12. Cost-Benefit -->
+            <div class="form-section" data-section="Cost-Benefit">
+                <div class="section-header" onclick="toggleSection(this)">
+                    <span>12. Cost-Benefit Analysis</span>
+                    <span class="toggle-icon">&#9660;</span>
+                </div>
+                <div class="section-body">
+                    <div class="form-group">
+                        <label>Estimated Costs</label>
+                        <textarea id="estimated_costs" rows="3" placeholder="Development, infrastructure, licensing, training..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Expected Benefits</label>
+                        <textarea id="expected_benefits" rows="3" placeholder="ROI, efficiency gains, revenue impact..."></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 13. Timeline -->
+            <div class="form-section" data-section="Timeline">
+                <div class="section-header" onclick="toggleSection(this)">
+                    <span>13. Implementation Timeline</span>
+                    <span class="toggle-icon">&#9660;</span>
+                </div>
+                <div class="section-body">
+                    <div class="form-group">
+                        <label>Timeline
+                            <span class="hint">One per line, pipe-separated: Phase | Duration | Deliverables</span>
+                        </label>
+                        <textarea id="timeline" rows="5" placeholder="Phase 1 — Discovery | 4 weeks | Requirements document&#10;Phase 2 — Design | 6 weeks | Architecture diagrams"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 14. Testing -->
+            <div class="form-section" data-section="Testing">
+                <div class="section-header" onclick="toggleSection(this)">
+                    <span>14. Testing Strategy</span>
+                    <span class="toggle-icon">&#9660;</span>
+                </div>
+                <div class="section-body">
+                    <div class="form-group">
+                        <label>Testing Strategy</label>
+                        <textarea id="testing_strategy" rows="5" placeholder="Unit tests, integration tests, UAT, performance testing..."></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 15. Assumptions & Constraints -->
+            <div class="form-section" data-section="Constraints">
+                <div class="section-header" onclick="toggleSection(this)">
+                    <span>15. Assumptions &amp; Constraints</span>
+                    <span class="toggle-icon">&#9660;</span>
+                </div>
+                <div class="section-body">
+                    <div class="form-group">
+                        <label>Assumptions <span class="hint">One per line.</span></label>
+                        <textarea id="assumptions" rows="3" placeholder="Existing infrastructure can support new system"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Constraints <span class="hint">One per line.</span></label>
+                        <textarea id="constraints" rows="3" placeholder="Budget limited to $150,000&#10;Must comply with GDPR"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 16. Recommendations -->
+            <div class="form-section" data-section="Recommendations">
+                <div class="section-header" onclick="toggleSection(this)">
+                    <span>16. Recommendations</span>
+                    <span class="toggle-icon">&#9660;</span>
+                </div>
+                <div class="section-body">
+                    <div class="form-group">
+                        <label>Recommendations <span class="hint">Conclusions and recommended next steps.</span></label>
+                        <textarea id="recommendations" rows="5" placeholder="Based on this analysis, we recommend..."></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 17. Appendices -->
+            <div class="form-section" data-section="Appendices">
+                <div class="section-header" onclick="toggleSection(this)">
+                    <span>17. Appendices</span>
+                    <span class="toggle-icon">&#9660;</span>
+                </div>
+                <div class="section-body">
+                    <div class="form-group">
+                        <label>Appendices <span class="hint">Additional supporting material or references.</span></label>
+                        <textarea id="appendices" rows="4" placeholder="Any supplementary information..."></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" class="btn-generate" id="btnGenerate">
+                Generate Systems Analysis Document
+            </button>
+        </form>
+    </div>
+
+    <footer class="app-footer">
+        Systems Analysis Document Generator &mdash; Single-file edition
+    </footer>
+
+    <script>
+    // ── Section toggle ──────────────────────────────────────────────
+    function toggleSection(header) {
+        header.nextElementSibling.classList.toggle("hidden");
+        header.classList.toggle("collapsed");
+    }
+
+    // ── Progress bar ────────────────────────────────────────────────
+    (function () {
+        var sections = document.querySelectorAll(".form-section");
+        var bar = document.getElementById("progressBar");
+        sections.forEach(function (sec) {
+            var step = document.createElement("span");
+            step.className = "progress-step";
+            step.textContent = sec.getAttribute("data-section");
+            step.addEventListener("click", function () {
+                sec.scrollIntoView({ behavior: "smooth", block: "start" });
+            });
+            bar.appendChild(step);
+        });
+        function updateProgress() {
+            var scrollY = window.scrollY + 150;
+            var idx = 0;
+            sections.forEach(function (sec, i) { if (sec.offsetTop <= scrollY) idx = i; });
+            document.querySelectorAll(".progress-step").forEach(function (s, i) {
+                s.classList.toggle("active", i === idx);
+            });
+        }
+        window.addEventListener("scroll", updateProgress);
+        updateProgress();
+    })();
+
+    // ── Set today's date ────────────────────────────────────────────
+    document.getElementById("document_date").value = new Date().toISOString().split("T")[0];
+
+    // ── Helpers ─────────────────────────────────────────────────────
+    function val(id) { return document.getElementById(id).value; }
+    function lines(id) { return val(id).split("\n").filter(function (l) { return l.trim(); }); }
+
+    var D = docx;
+    var PRIMARY = "2E4057";
+
+    function heading(text, level) {
+        return new D.Paragraph({ text: text, heading: level === 1 ? D.HeadingLevel.HEADING_1 : level === 2 ? D.HeadingLevel.HEADING_2 : D.HeadingLevel.HEADING_3 });
+    }
+    function para(text) {
+        return new D.Paragraph({ children: [new D.TextRun({ text: text || "" })] });
+    }
+    function bulletItem(text) {
+        return new D.Paragraph({ text: text, bullet: { level: 0 } });
+    }
+    function numberedItem(text, idx) {
+        return new D.Paragraph({
+            children: [new D.TextRun({ text: (idx + 1) + ". " + text })]
+        });
+    }
+    function emptyPara() {
+        return new D.Paragraph({ children: [] });
+    }
+
+    function buildBullets(id) {
+        var items = lines(id);
+        if (!items.length) return [para("No items specified.")];
+        return items.map(function (t) { return bulletItem(t); });
+    }
+
+    function buildNumbered(id) {
+        var items = lines(id);
+        if (!items.length) return [para("No requirements specified.")];
+        return items.map(function (t, i) { return numberedItem(t, i); });
+    }
+
+    function headerCell(text) {
+        return new D.TableCell({
+            children: [new D.Paragraph({
+                children: [new D.TextRun({ text: text, bold: true, color: "FFFFFF", size: 20 })]
+            })],
+            shading: { fill: PRIMARY, type: D.ShadingType.CLEAR }
+        });
+    }
+    function dataCell(text) {
+        return new D.TableCell({
+            children: [new D.Paragraph({
+                children: [new D.TextRun({ text: text || "", size: 20 })]
+            })]
+        });
+    }
+
+    function pipeTable(id, headers) {
+        var items = lines(id);
+        if (!items.length) return [para("No data provided.")];
+        var rows = [new D.TableRow({ children: headers.map(headerCell) })];
+        items.forEach(function (line) {
+            var parts = line.split("|").map(function (s) { return s.trim(); });
+            while (parts.length < headers.length) parts.push("");
+            rows.push(new D.TableRow({
+                children: parts.slice(0, headers.length).map(dataCell)
+            }));
+        });
+        return [new D.Table({ rows: rows, width: { size: 100, type: D.WidthType.PERCENTAGE } })];
+    }
+
+    // ── Generate Document ───────────────────────────────────────────
+    function handleGenerate(e) {
+        e.preventDefault();
+        var btn = document.getElementById("btnGenerate");
+        btn.disabled = true;
+        btn.textContent = "Generating...";
+
+        var projectName = val("project_name") || "Untitled Project";
+        var author = val("author");
+        var org = val("organization");
+        var docDate = val("document_date") || new Date().toISOString().split("T")[0];
+        var version = val("version") || "1.0";
+
+        // Build title page
+        var titleChildren = [];
+        for (var i = 0; i < 6; i++) titleChildren.push(emptyPara());
+        titleChildren.push(new D.Paragraph({
+            alignment: D.AlignmentType.CENTER,
+            children: [new D.TextRun({
+                text: "Systems Analysis Document",
+                bold: true, size: 56, color: PRIMARY
+            })]
+        }));
+        titleChildren.push(emptyPara());
+        titleChildren.push(new D.Paragraph({
+            alignment: D.AlignmentType.CENTER,
+            children: [new D.TextRun({ text: projectName, size: 36, color: "555555" })]
+        }));
+        titleChildren.push(emptyPara());
+
+        var metaItems = [
+            ["Prepared by", author],
+            ["Organization", org],
+            ["Date", docDate],
+            ["Version", version]
+        ];
+        metaItems.forEach(function (m) {
+            if (m[1]) {
+                titleChildren.push(new D.Paragraph({
+                    alignment: D.AlignmentType.CENTER,
+                    children: [
+                        new D.TextRun({ text: m[0] + ": ", bold: true, size: 22 }),
+                        new D.TextRun({ text: m[1], size: 22 })
+                    ]
+                }));
+            }
+        });
+
+        // Content sections
+        var content = [];
+
+        // 1. Executive Summary
+        content.push(heading("1. Executive Summary", 1));
+        content.push(para(val("executive_summary")));
+
+        // 2. Introduction
+        content.push(heading("2. Introduction", 1));
+        content.push(heading("2.1 Purpose", 2));
+        content.push(para(val("purpose")));
+        content.push(heading("2.2 Scope", 2));
+        content.push(para(val("scope")));
+        content.push(heading("2.3 Definitions & Acronyms", 2));
+        content = content.concat(buildBullets("definitions"));
+
+        // 3. Current System
+        content.push(heading("3. Current System Overview", 1));
+        content.push(heading("3.1 Current System Description", 2));
+        content.push(para(val("current_system_description")));
+        content.push(heading("3.2 Current System Limitations", 2));
+        content = content.concat(buildBullets("current_system_limitations"));
+
+        // 4. Proposed System
+        content.push(heading("4. Proposed System", 1));
+        content.push(heading("4.1 System Overview", 2));
+        content.push(para(val("proposed_system_overview")));
+        content.push(heading("4.2 Goals & Objectives", 2));
+        content = content.concat(buildBullets("system_goals"));
+
+        // 5. Requirements
+        content.push(heading("5. Requirements", 1));
+        content.push(heading("5.1 Functional Requirements", 2));
+        content = content.concat(buildNumbered("functional_requirements"));
+        content.push(heading("5.2 Non-Functional Requirements", 2));
+        content = content.concat(buildNumbered("nonfunctional_requirements"));
+
+        // 6. Architecture
+        content.push(heading("6. System Architecture", 1));
+        content.push(heading("6.1 Architecture Overview", 2));
+        content.push(para(val("architecture_overview")));
+        content.push(heading("6.2 Technology Stack", 2));
+        content = content.concat(buildBullets("technology_stack"));
+        content.push(heading("6.3 Data Flow Description", 2));
+        content.push(para(val("data_flow")));
+        content.push(heading("6.4 Integration Points", 2));
+        content.push(para(val("integration_points")));
+
+        // 7. Data Requirements
+        content.push(heading("7. Data Requirements", 1));
+        content.push(heading("7.1 Data Entities", 2));
+        content.push(para(val("data_entities")));
+        content.push(heading("7.2 Data Storage & Retention", 2));
+        content.push(para(val("data_storage")));
+
+        // 8. UI Requirements
+        content.push(heading("8. User Interface Requirements", 1));
+        content.push(para(val("ui_requirements")));
+
+        // 9. Security
+        content.push(heading("9. Security Requirements", 1));
+        content.push(para(val("security_requirements")));
+
+        // 10. Stakeholders
+        content.push(heading("10. Stakeholder Analysis", 1));
+        content = content.concat(pipeTable("stakeholders", ["Stakeholder", "Role", "Interest"]));
+
+        // 11. Risks
+        content.push(heading("11. Risk Assessment", 1));
+        content = content.concat(pipeTable("risks", ["Risk", "Likelihood", "Impact", "Mitigation"]));
+
+        // 12. Cost-Benefit
+        content.push(heading("12. Cost-Benefit Analysis", 1));
+        content.push(heading("12.1 Estimated Costs", 2));
+        content.push(para(val("estimated_costs")));
+        content.push(heading("12.2 Expected Benefits", 2));
+        content.push(para(val("expected_benefits")));
+
+        // 13. Timeline
+        content.push(heading("13. Implementation Timeline", 1));
+        content = content.concat(pipeTable("timeline", ["Phase", "Duration", "Deliverables"]));
+
+        // 14. Testing
+        content.push(heading("14. Testing Strategy", 1));
+        content.push(para(val("testing_strategy")));
+
+        // 15. Assumptions & Constraints
+        content.push(heading("15. Assumptions & Constraints", 1));
+        content.push(heading("15.1 Assumptions", 2));
+        content = content.concat(buildBullets("assumptions"));
+        content.push(heading("15.2 Constraints", 2));
+        content = content.concat(buildBullets("constraints"));
+
+        // 16. Recommendations
+        content.push(heading("16. Recommendations", 1));
+        content.push(para(val("recommendations")));
+
+        // 17. Appendices
+        content.push(heading("17. Appendices", 1));
+        content.push(para(val("appendices")));
+
+        // Build document
+        var doc = new D.Document({
+            styles: {
+                default: {
+                    document: {
+                        run: { font: "Calibri", size: 22, color: "222222" }
+                    }
+                }
+            },
+            sections: [
+                {
+                    properties: {},
+                    children: titleChildren
+                },
+                {
+                    properties: {},
+                    children: content
+                }
+            ]
+        });
+
+        D.Packer.toBlob(doc).then(function (blob) {
+            var filename = "systems_analysis_" + projectName.replace(/\s+/g, "_") + ".docx";
+            saveAs(blob, filename);
+            btn.disabled = false;
+            btn.textContent = "Generate Systems Analysis Document";
+        }).catch(function (err) {
+            alert("Error generating document: " + err.message);
+            btn.disabled = false;
+            btn.textContent = "Generate Systems Analysis Document";
+        });
+
+        return false;
+    }
+    </script>
+</body>
+</html>
