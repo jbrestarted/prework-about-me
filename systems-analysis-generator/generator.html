@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Systems Analysis Document Generator</title>
-    <script src="https://unpkg.com/docx@9.1.1/build/index.umd.js"></script>
+    <script src="https://unpkg.com/docx@8.5.0/build/index.umd.js"></script>
     <script src="https://unpkg.com/file-saver@2.0.5/dist/FileSaver.min.js"></script>
     <style>
         :root {
@@ -493,11 +493,13 @@
         return new D.Paragraph({ children: [new D.TextRun({ text: text || "" })] });
     }
     function bulletItem(text) {
-        return new D.Paragraph({ text: text, bullet: { level: 0 } });
+        return new D.Paragraph({
+            children: [new D.TextRun({ text: "\u2022  " + text })]
+        });
     }
     function numberedItem(text, idx) {
         return new D.Paragraph({
-            children: [new D.TextRun({ text: (idx + 1) + ". " + text })]
+            children: [new D.TextRun({ text: (idx + 1) + ".  " + text })]
         });
     }
     function emptyPara() {
@@ -521,7 +523,7 @@
             children: [new D.Paragraph({
                 children: [new D.TextRun({ text: text, bold: true, color: "FFFFFF", size: 20 })]
             })],
-            shading: { fill: PRIMARY, type: D.ShadingType.CLEAR }
+            shading: { fill: PRIMARY, type: "clear" }
         });
     }
     function dataCell(text) {
@@ -543,7 +545,7 @@
                 children: parts.slice(0, headers.length).map(dataCell)
             }));
         });
-        return [new D.Table({ rows: rows, width: { size: 100, type: D.WidthType.PERCENTAGE } })];
+        return [new D.Table({ rows: rows })];
     }
 
     // ── Generate Document ───────────────────────────────────────────
@@ -696,22 +698,11 @@
         content.push(para(val("appendices")));
 
         // Build document
+        var allChildren = titleChildren.concat([emptyPara()]).concat(content);
         var doc = new D.Document({
-            styles: {
-                default: {
-                    document: {
-                        run: { font: "Calibri", size: 22, color: "222222" }
-                    }
-                }
-            },
             sections: [
                 {
-                    properties: {},
-                    children: titleChildren
-                },
-                {
-                    properties: {},
-                    children: content
+                    children: allChildren
                 }
             ]
         });
@@ -723,6 +714,7 @@
             btn.textContent = "Generate Systems Analysis Document";
         }).catch(function (err) {
             alert("Error generating document: " + err.message);
+            console.error(err);
             btn.disabled = false;
             btn.textContent = "Generate Systems Analysis Document";
         });
