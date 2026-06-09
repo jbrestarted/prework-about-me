@@ -1,0 +1,962 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Beatsmith — MPC + Elektron Hip-Hop Copilot (Standalone)</title>
+<style>
+  :root{
+    --ink-950:#070809;--ink-900:#0c0e12;--ink-850:#101319;--ink-800:#151922;
+    --ink-700:#1d222d;--ink-600:#272e3b;--ink-500:#3a4456;
+    --mpc:#f6c026;--rytm:#ff5c5c;--a4:#5cc8ff;
+    --accent:#a78bfa;--accent-soft:#c4b5fd;
+    --text:#e7eaf0;--muted:#9aa3b2;--dim:#6b7280;
+  }
+  *{box-sizing:border-box}
+  html{color-scheme:dark}
+  body{margin:0;background:var(--ink-950);color:var(--text);
+    font:14px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    -webkit-font-smoothing:antialiased}
+  a{color:inherit;text-decoration:none}
+  ::-webkit-scrollbar{width:10px;height:10px}
+  ::-webkit-scrollbar-track{background:var(--ink-900)}
+  ::-webkit-scrollbar-thumb{background:var(--ink-600);border-radius:99px;border:2px solid var(--ink-900)}
+
+  .layout{display:flex;min-height:100vh}
+  .sidebar{position:sticky;top:0;height:100vh;width:232px;flex-shrink:0;display:flex;flex-direction:column;
+    border-right:1px solid var(--ink-800);background:var(--ink-900);padding:22px 14px}
+  @media(max-width:820px){.sidebar{display:none}}
+  .logo{display:flex;align-items:center;gap:10px;margin-bottom:28px;padding:0 4px}
+  .logo-badge{display:grid;place-items:center;width:36px;height:36px;border-radius:10px;
+    background:linear-gradient(135deg,var(--accent),var(--a4));color:var(--ink-950);font-weight:700;font-size:17px}
+  .logo b{display:block;font-size:13px}
+  .logo small{color:var(--dim);font-size:11px}
+  .nav a{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:9px;color:var(--muted);font-size:13px;margin-bottom:2px}
+  .nav a:hover{background:var(--ink-850);color:var(--text)}
+  .nav a.active{background:var(--ink-800);color:var(--text)}
+  .chain{margin-top:auto;border:1px solid var(--ink-800);background:var(--ink-850);border-radius:10px;padding:12px;font-size:11px}
+  .chain h4{margin:0 0 8px;font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--dim)}
+  .chain div{display:flex;align-items:center;gap:7px;margin:5px 0}
+  .dot{width:6px;height:6px;border-radius:99px;display:inline-block;flex-shrink:0}
+  .footnote{margin-top:10px;color:#4b5563;font-size:10px;padding:0 2px}
+
+  main{flex:1;min-width:0}
+  .wrap{max-width:1060px;margin:0 auto;padding:30px 24px 60px}
+
+  .card{background:var(--ink-850);border:1px solid var(--ink-700);border-radius:12px;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.03),0 8px 24px -12px rgba(0,0,0,.6)}
+  .card.pad{padding:18px}
+  .card.hov:hover{border-color:var(--ink-600);background:var(--ink-800)}
+  .grid{display:grid;gap:14px}
+  .g2{grid-template-columns:repeat(auto-fill,minmax(290px,1fr))}
+  .g3{grid-template-columns:repeat(auto-fill,minmax(250px,1fr))}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .spread{justify-content:space-between}
+
+  h1{font-size:24px;margin:0 0 4px}
+  h2{font-size:17px;margin:0 0 4px}
+  h3{font-size:14px;margin:0 0 4px}
+  .kicker{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--accent-soft);margin:0 0 6px}
+  .sec-h{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);margin:0 0 10px;font-weight:600}
+  .muted{color:var(--muted)}.dim{color:var(--dim)}.small{font-size:12px}.tiny{font-size:11px}
+
+  .btn{display:inline-flex;align-items:center;gap:6px;border:none;border-radius:9px;padding:8px 14px;
+    font:inherit;font-size:13px;font-weight:500;cursor:pointer;transition:.15s}
+  .btn:disabled{opacity:.45;cursor:not-allowed}
+  .btn.p{background:var(--accent);color:var(--ink-950)}
+  .btn.p:hover:not(:disabled){background:var(--accent-soft)}
+  .btn.g{background:var(--ink-800);color:var(--text);border:1px solid var(--ink-700)}
+  .btn.g:hover:not(:disabled){border-color:var(--ink-600);background:var(--ink-700)}
+  .btn.s{background:transparent;color:var(--muted)}
+  .btn.s:hover{background:var(--ink-800)}
+  .btn.xs{padding:4px 10px;font-size:12px}
+  .btn.danger{color:#fb7185}
+
+  .chip{display:inline-flex;align-items:center;gap:5px;border-radius:99px;border:1px solid var(--ink-600);
+    background:var(--ink-800);color:var(--muted);padding:2px 10px;font-size:11px;font-weight:500;cursor:default}
+  .chip.click{cursor:pointer}
+  .chip.on{border-color:rgba(167,139,250,.6);background:rgba(167,139,250,.15);color:var(--accent-soft)}
+  .chip.mpc{border-color:rgba(246,192,38,.4);background:rgba(246,192,38,.12);color:var(--mpc)}
+  .chip.rytm{border-color:rgba(255,92,92,.4);background:rgba(255,92,92,.12);color:var(--rytm)}
+  .chip.a4{border-color:rgba(92,200,255,.4);background:rgba(92,200,255,.12);color:var(--a4)}
+  .chip.ok{border-color:rgba(52,211,153,.4);background:rgba(52,211,153,.1);color:#6ee7b7}
+  .chip.warn{border-color:rgba(251,191,36,.4);background:rgba(251,191,36,.1);color:#fcd34d}
+
+  .bar{height:8px;border-radius:99px;background:var(--ink-700);overflow:hidden}
+  .bar>div{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--accent),var(--a4));transition:width .3s}
+
+  label.lbl{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:0 0 5px;font-weight:500}
+  input.in,select.in,textarea.in{width:100%;background:var(--ink-900);border:1px solid var(--ink-700);border-radius:9px;
+    color:var(--text);padding:8px 11px;font:inherit;font-size:13px}
+  input.in:focus,select.in:focus,textarea.in:focus{outline:none;border-color:rgba(167,139,250,.6)}
+  textarea.in{resize:vertical}
+  input[type=range]{accent-color:var(--accent);width:100%}
+  input[type=checkbox]{accent-color:var(--accent)}
+
+  .check{display:flex;gap:10px;align-items:flex-start;padding:6px 8px;border-radius:8px;cursor:pointer}
+  .check:hover{background:var(--ink-800)}
+  .check.done span{color:var(--dim);text-decoration:line-through}
+
+  .stage-item{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:none;border:none;
+    color:var(--muted);font:inherit;font-size:13px;padding:7px 10px;border-radius:8px;cursor:pointer}
+  .stage-item:hover{background:var(--ink-850);color:var(--text)}
+  .stage-item.active{background:var(--ink-800);color:var(--text);font-weight:500}
+  .stage-num{display:grid;place-items:center;width:22px;height:22px;border-radius:99px;border:1px solid var(--ink-600);
+    font-size:10px;color:var(--dim);flex-shrink:0}
+  .stage-num.done{border-color:rgba(52,211,153,.5);background:rgba(52,211,153,.18);color:#6ee7b7}
+  .stage-num.prog{border-color:rgba(251,191,36,.5);background:rgba(251,191,36,.14);color:#fcd34d}
+  .stage-num.cur{border-color:rgba(167,139,250,.6);background:rgba(167,139,250,.15);color:var(--accent-soft)}
+
+  .tabs{display:flex;gap:2px;border-bottom:1px solid var(--ink-800);margin-bottom:22px;flex-wrap:wrap}
+  .tabs a{padding:8px 14px;font-size:13px;color:var(--muted);border-bottom:2px solid transparent}
+  .tabs a:hover{color:var(--text)}
+  .tabs a.active{color:var(--text);font-weight:500;border-bottom-color:var(--accent)}
+
+  .guide{border-left:2px solid;padding:14px}
+  .prompt{display:flex;gap:8px;background:var(--ink-900);border-radius:9px;padding:8px 12px;font-size:13px;color:#cbd2dd}
+  .prompt b{color:var(--accent);font-weight:400}
+
+  .tl{display:flex;border:1px solid var(--ink-700);border-radius:10px;overflow:hidden}
+  .tl button{position:relative;border:none;border-right:1px solid var(--ink-900);padding:10px 8px;text-align:left;
+    cursor:pointer;color:rgba(255,255,255,.95);font:inherit;min-width:46px}
+  .tl button:last-child{border-right:none}
+  .tl button.sel{outline:2px solid rgba(255,255,255,.7);outline-offset:-2px}
+  .tl b{display:block;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tl i{font-style:normal;font-size:10px;color:rgba(255,255,255,.7)}
+  .e1{background:var(--ink-600)}.e2{background:#0369a1}.e3{background:#059669}.e4{background:#f59e0b}.e5{background:#f43f5e}
+
+  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ink-800);
+    border:1px solid var(--ink-600);border-radius:10px;padding:10px 18px;font-size:13px;z-index:50;
+    box-shadow:0 10px 30px rgba(0,0,0,.5);animation:up .2s}
+  @keyframes up{from{opacity:0;transform:translate(-50%,8px)}to{opacity:1;transform:translate(-50%,0)}}
+  .notice{border-left:2px solid rgba(251,191,36,.45);background:rgba(251,191,36,.05);border-radius:10px;
+    padding:12px 14px;font-size:13px;color:#fde68a}
+  ol.steps,ul.vars{margin:4px 0 0;padding-left:18px}
+  ol.steps li,ul.vars li{margin:3px 0;font-size:13px;color:#cbd2dd}
+  ul.vars li{color:var(--muted)}
+  .hero{background:linear-gradient(135deg,var(--ink-850),var(--ink-900));border-radius:12px;border:1px solid var(--ink-700);padding:30px}
+  .two-col{display:grid;grid-template-columns:250px 1fr;gap:22px}
+  @media(max-width:920px){.two-col{grid-template-columns:1fr}}
+  .opt-card{display:flex;flex-direction:column;padding:15px}
+  .decision{background:var(--ink-900);border-radius:9px;padding:9px 12px;font-size:13px;color:#cbd2dd;display:flex;gap:8px;align-items:flex-start}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+"use strict";
+/* ============================== SEED DATA ============================== */
+const DATA = /*__DATA__*/;
+
+const {SUBSTYLES, STAGES, COMPLETION_CHECKLIST, CATEGORY_LABELS, CREATIVE_OPTIONS, DEFAULT_DEVICES, DEFAULT_ROUTING} = DATA;
+const STAGE_MAP = Object.fromEntries(STAGES.map(s=>[s.id,s]));
+const SUBSTYLE_MAP = Object.fromEntries(SUBSTYLES.map(s=>[s.id,s]));
+const CATEGORIES = Object.keys(CATEGORY_LABELS);
+const DEVICE_META = {
+  mpc:{short:"MPC",full:"MPC Live III",color:"var(--mpc)"},
+  rytm:{short:"Rytm",full:"Analog Rytm MKII",color:"var(--rytm)"},
+  a4:{short:"A4",full:"Analog Four MKII",color:"var(--a4)"},
+};
+const DEVICE_NAMES = {mpc:"MPC Live III",rytm:"Analog Rytm MKII",a4:"Analog Four MKII",any:"any device"};
+const STAGE_ORDER = ["setup","tempo-groove","reference","drums","bass","harmony","hooks","texture","effects","arrangement","automation","transition","mixprep","export","review"];
+
+/* ============================== STORE ============================== */
+// Same key as the Next.js app — backups and data interchange freely.
+const KEY = "mpc-elektron-copilot:v1";
+function loadProjects(){ try{const r=localStorage.getItem(KEY);const p=r?JSON.parse(r):[];return Array.isArray(p)?p:[];}catch(e){return [];} }
+function saveProjects(ps){ try{localStorage.setItem(KEY,JSON.stringify(ps));}catch(e){} }
+let projects = loadProjects();
+function getProject(id){ return projects.find(p=>p.id===id); }
+function updateProject(id,fn){
+  projects = projects.map(p=>p.id===id?{...fn(p),updatedAt:Date.now()}:p);
+  saveProjects(projects);
+}
+function uid(pre){ return pre+"-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,8); }
+
+/* ============================== FACTORY ============================== */
+function checklist(labels){ return labels.map(l=>({id:uid("chk"),label:l,done:false})); }
+function createProject(input){
+  const style = SUBSTYLE_MAP[input.substyle];
+  const now = Date.now();
+  const bpm = input.bpm || Math.round((style.bpmRange[0]+style.bpmRange[1])/2);
+  const stageStates = {};
+  for(const st of STAGES) stageStates[st.id]={status:"not-started",notes:"",checklist:checklist(st.checklistTemplate.map(c=>c.label))};
+  const sec = (name,bars,devs,dd,ba,ma,en,notes)=>({id:uid("sec"),name,bars,activeDevices:devs,drumDensity:dd,bassActivity:ba,melodicActivity:ma,energy:en,notes});
+  return {
+    id:uid("proj"), title:input.title||"Untitled Beat", producerName:input.producerName||"",
+    substyle:input.substyle, bpm, swing:style.defaultSwing, grooveNotes:style.grooveFeel,
+    key:input.key||"C", scale:input.scale||"Minor", mood:input.mood||"", referenceTracks:input.referenceTracks||"",
+    hardwareSetupNotes:"MPC Live III = master clock + arranger. Rytm = drums. A4 = bass/melody. Edit on the Hardware page.",
+    midiRoutingNotes:"", audioRoutingNotes:"",
+    devices: JSON.parse(JSON.stringify(DEFAULT_DEVICES)),
+    routing: JSON.parse(JSON.stringify(DEFAULT_ROUTING)),
+    sections:[
+      sec("Intro",8,["mpc","a4"],"sparse","none","motif",2,"Strip back; introduce one element."),
+      sec("Verse 1",16,["mpc","rytm","a4"],"medium","groove","motif",3,"Drums + bass focus."),
+      sec("Hook",8,["mpc","rytm","a4"],"full","active","full",5,"Full arrangement, add chords/lead."),
+      sec("Verse 2",16,["mpc","rytm","a4"],"medium","groove","motif",3,"Variation on verse 1."),
+      sec("Outro",8,["mpc","a4"],"sparse","sustained","pad",2,"Filter down and fade."),
+    ],
+    decisions:[], stageStates,
+    completionChecklist:checklist(COMPLETION_CHECKLIST),
+    exportNotes:"", createdAt:now, updatedAt:now,
+  };
+}
+
+/* ============================== IDEA GENERATOR ============================== */
+function scoreOption(opt,project,savedTitles){
+  let s=1;
+  if(opt.styleFit==="all") s+=1;
+  else if(opt.styleFit.includes(project.substyle)) s+=3;
+  else s-=1;
+  const active=new Set(project.sections.flatMap(x=>x.activeDevices));
+  if(opt.recommendedDevice!=="any"&&active.has(opt.recommendedDevice)) s+=1;
+  const mood=(project.mood||"").toLowerCase();
+  if(mood){
+    const words=mood.split(/[\s,]+/).filter(w=>w.length>3);
+    const txt=(opt.title+" "+opt.description+" "+opt.whenToUse).toLowerCase();
+    if(words.some(w=>txt.includes(w))) s+=1.5;
+  }
+  const st=SUBSTYLE_MAP[project.substyle];
+  if(project.bpm>=st.bpmRange[0]&&project.bpm<=st.bpmRange[1]) s+=0.5;
+  if(savedTitles.has(opt.title)) s-=5;
+  return s+Math.random()*1.5;
+}
+function generateIdeas(project,{stageId,category,count=4}={}){
+  const saved=new Set(project.decisions.map(d=>d.text.split(" — ")[0]));
+  let pool=CREATIVE_OPTIONS;
+  if(category) pool=pool.filter(o=>o.category===category);
+  else if(stageId&&STAGE_MAP[stageId]){
+    const cats=new Set(STAGE_MAP[stageId].relatedCategories);
+    pool=pool.filter(o=>cats.has(o.category));
+  }
+  return pool.map(o=>({o,s:scoreOption(o,project,saved)}))
+    .sort((a,b)=>b.s-a.s).slice(0,count)
+    .map(({o})=>({
+      id:o.id+"-"+Math.random().toString(36).slice(2,7),
+      category:o.category, device:o.recommendedDevice, source:o,
+      text:`On the ${DEVICE_NAMES[o.recommendedDevice]||"your gear"}: ${o.title}. ${o.description} — fits ${SUBSTYLE_MAP[project.substyle].name}. ${o.whenToUse} Capture it into the MPC arrangement once it works.`,
+    }));
+}
+function nextStageId(p){
+  for(const id of STAGE_ORDER){ const st=p.stageStates[id]; if(!st||st.status!=="complete") return id; }
+  return "review";
+}
+
+/* ============================== UTILITIES ============================== */
+const $=sel=>document.querySelector(sel);
+function esc(s){ return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function toast(msg){
+  document.querySelectorAll(".toast").forEach(t=>t.remove());
+  const t=document.createElement("div"); t.className="toast"; t.textContent=msg;
+  document.body.appendChild(t); setTimeout(()=>t.remove(),2200);
+}
+function devChip(d,full){
+  if(d==="any") return `<span class="chip">Any device</span>`;
+  const m=DEVICE_META[d];
+  return `<span class="chip ${d}"><span class="dot" style="background:currentColor"></span>${full?m.full:m.short}</span>`;
+}
+function diffDot(level){
+  const map={beginner:["#34d399","Beginner"],intermediate:["#fbbf24","Intermediate"],advanced:["#fb7185","Advanced"]};
+  const [c,l]=map[level]||map.beginner;
+  return `<span class="tiny dim"><span class="dot" style="background:${c}"></span> ${l}</span>`;
+}
+function progressOf(p){
+  const done=STAGES.filter(s=>p.stageStates[s.id]&&p.stageStates[s.id].status==="complete").length;
+  return {done,pct:Math.round(done/STAGES.length*100)};
+}
+function saveDecision(projectId,{category,text,device,stageId}){
+  updateProject(projectId,p=>({...p,decisions:[{id:uid("dec"),category,text,device,stageId,createdAt:Date.now()},...p.decisions]}));
+  toast("Saved to project ✓");
+}
+// Persistent UI state per render-cycle
+const UI = { workflowStage:null, ideasCategory:"drums", arrangeSel:null, lastIdeas:{} };
+
+/* ============================== ROUTER ============================== */
+function route(){
+  const h=location.hash.replace(/^#\/?/,"");
+  const parts=h.split("/").filter(Boolean);
+  if(parts[0]==="new") return viewNew();
+  if(parts[0]==="settings") return viewSettings();
+  if(parts[0]==="projects"&&!parts[1]) return viewProjects();
+  if(parts[0]==="p"&&parts[1]){
+    const proj=getProject(parts[1]);
+    if(!proj) return viewNotFound();
+    const sub=parts[2]||"overview";
+    if(sub==="workflow") return viewWorkflow(proj,parts[3]);
+    if(sub==="arrangement") return viewArrangement(proj);
+    if(sub==="ideas") return viewIdeas(proj);
+    if(sub==="hardware") return viewHardware(proj);
+    return viewOverview(proj);
+  }
+  return viewHome();
+}
+window.addEventListener("hashchange",route);
+// Cross-tab sync: storage is re-read only when another tab writes it, so the
+// in-memory list stays authoritative even if localStorage is unavailable.
+window.addEventListener("storage",e=>{ if(e.key===KEY){ projects=loadProjects(); route(); } });
+
+/* ============================== SHELL ============================== */
+function shell(content,active){
+  const navItem=(href,icon,label,key)=>`<a href="#/${href}" class="${active===key?'active':''}"><span style="width:16px;text-align:center;color:var(--dim)">${icon}</span>${label}</a>`;
+  $("#app").innerHTML=`
+  <div class="layout">
+    <aside class="sidebar">
+      <a class="logo" href="#/"><span class="logo-badge">B</span><span><b>Beatsmith</b><small>MPC × Elektron copilot</small></span></a>
+      <nav class="nav">
+        ${navItem("","◎","Home","home")}
+        ${navItem("projects","🗂","Projects","projects")}
+        ${navItem("new","＋","New Project","new")}
+        ${navItem("settings","⚙","Settings","settings")}
+      </nav>
+      <div class="chain">
+        <h4>Signal chain</h4>
+        <div style="color:var(--mpc)"><span class="dot" style="background:var(--mpc)"></span>MPC — clock + arranger</div>
+        <div style="color:var(--rytm)"><span class="dot" style="background:var(--rytm)"></span>Rytm — drums</div>
+        <div style="color:var(--a4)"><span class="dot" style="background:var(--a4)"></span>A4 — bass / melody</div>
+      </div>
+      <p class="footnote">Standalone build · saved in this browser</p>
+    </aside>
+    <main><div class="wrap">${content}</div></main>
+  </div>`;
+}
+function projectTabs(p,active){
+  const t=(key,label)=>`<a href="#/p/${p.id}${key==='overview'?'':'/'+key}" class="${active===key?'active':''}">${label}</a>`;
+  return `<div class="tabs">${t("overview","Overview")}${t("workflow","Workflow")}${t("arrangement","Arrangement")}${t("ideas","Ideas")}${t("hardware","Hardware")}</div>`;
+}
+
+/* ============================== VIEWS ============================== */
+function viewHome(){
+  const recent=projects.slice(0,3);
+  shell(`
+    <div class="hero">
+      <p class="kicker">Hip-hop production copilot</p>
+      <h1 style="max-width:620px;font-size:28px">From idea to arrangement to mix prep — guided for your MPC + Elektron rig.</h1>
+      <p class="muted" style="max-width:600px">A structured, 15-stage workflow that tells you what to build next, what each device should do, and gives you endless context-aware creative options along the way.</p>
+      <div class="row" style="margin-top:18px">
+        <a class="btn p" href="#/new">＋ Start a new beat</a>
+        <a class="btn g" href="#/projects">View projects</a>
+      </div>
+      <div class="grid g3" style="margin-top:24px">
+        ${[["MPC Live III","Master clock · arranger · sampler","mpc"],["Analog Rytm MKII","Drums · percussion · fills","rytm"],["Analog Four MKII","Bass · chords · leads · texture","a4"]]
+          .map(([t,r,c])=>`<div class="card pad" style="border-color:color-mix(in srgb,var(--${c}) 35%,transparent)"><b style="color:var(--${c});font-size:13px">${t}</b><div class="tiny muted" style="margin-top:3px">${r}</div></div>`).join("")}
+      </div>
+    </div>
+    <div class="row spread" style="margin:34px 0 14px"><div><h2>Recent projects</h2><p class="small dim" style="margin:0">Pick up where you left off</p></div><a class="btn s xs" href="#/projects">All projects →</a></div>
+    ${recent.length===0
+      ? `<div class="card pad" style="text-align:center;padding:48px"><div style="font-size:34px">🎚️</div><h3>No projects yet</h3><p class="small muted">Create your first production and the copilot will guide you stage by stage.</p><a class="btn p" href="#/new">＋ Start a new beat</a></div>`
+      : `<div class="grid g3">${recent.map(projectCardHTML).join("")}</div>`}
+    <h2 style="margin:34px 0 4px">How it works</h2>
+    <p class="small dim" style="margin:0 0 14px">A complete production, broken into clear moves</p>
+    <div class="grid g3">
+      ${[["01","Set the target","Pick a substyle, BPM, key, and mood. The app seeds smart defaults for your rig."],
+         ["02","Work the stages","15 guided stages from drums to mix prep — each with per-device actions and idea cards."],
+         ["03","Arrange & finish","Build sections on the timeline, capture performances, and run the completion checklist."]]
+        .map(([n,t,b])=>`<div class="card pad"><div class="tiny" style="font-family:monospace;color:var(--accent-soft);margin-bottom:6px">${n}</div><h3>${t}</h3><p class="small muted" style="margin:0">${b}</p></div>`).join("")}
+    </div>`,"home");
+}
+
+function projectCardHTML(p){
+  const st=SUBSTYLE_MAP[p.substyle], {done,pct}=progressOf(p);
+  return `<a class="card pad hov" href="#/p/${p.id}" style="display:block">
+    <div class="row spread" style="margin-bottom:8px;align-items:flex-start">
+      <div style="min-width:0"><b style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(p.title)}</b>
+      <span class="tiny dim">${esc(p.producerName?p.producerName+" · ":"")}${st.name}</span></div>
+      <span class="chip on">${st.name}</span>
+    </div>
+    <div class="row tiny muted" style="gap:6px;margin-bottom:12px">
+      <span style="background:var(--ink-800);border-radius:6px;padding:3px 8px">${p.bpm} BPM</span>
+      <span style="background:var(--ink-800);border-radius:6px;padding:3px 8px">${esc(p.key)} ${esc(p.scale)}</span>
+      ${p.mood?`<span style="background:var(--ink-800);border-radius:6px;padding:3px 8px">${esc(p.mood)}</span>`:""}
+    </div>
+    <div class="row" style="gap:10px"><div class="bar" style="flex:1"><div style="width:${pct}%"></div></div><span class="tiny muted">${pct}%</span></div>
+    <div class="tiny" style="color:#4b5563;margin-top:5px">${done} / ${STAGES.length} stages · updated ${new Date(p.updatedAt).toLocaleDateString()}</div>
+  </a>`;
+}
+
+function viewProjects(){
+  shell(`
+    <div class="row spread" style="margin-bottom:16px">
+      <div><h2>Projects</h2><p class="small dim" style="margin:0">${projects.length} production${projects.length===1?"":"s"}</p></div>
+      <a class="btn p" href="#/new">＋ New project</a>
+    </div>
+    ${projects.length===0
+      ? `<div class="card pad" style="text-align:center;padding:48px"><div style="font-size:34px">🗂️</div><h3>No projects yet</h3><p class="small muted">Start your first beat and the copilot walks you from idea to mix prep.</p><a class="btn p" href="#/new">＋ Start a new beat</a></div>`
+      : `<div class="grid g3">${projects.map(projectCardHTML).join("")}</div>`}`,"projects");
+}
+
+function viewNew(){
+  shell(`
+    <div style="max-width:760px;margin:0 auto">
+      <h2>New production</h2><p class="small dim">Set the creative target. You can change anything later.</p>
+      <div class="card pad" style="margin-bottom:16px">
+        <div class="grid" style="grid-template-columns:1fr 1fr">
+          <div><label class="lbl">Title *</label><input class="in" id="f-title" placeholder="e.g. Midnight Dusty"></div>
+          <div><label class="lbl">Producer / artist</label><input class="in" id="f-producer" placeholder="Your name"></div>
+        </div>
+      </div>
+      <label class="lbl">Substyle *</label>
+      <div class="grid g3" id="style-grid" style="margin-bottom:16px">
+        ${SUBSTYLES.map(s=>`<button class="card pad hov style-pick" data-id="${s.id}" style="text-align:left;cursor:pointer;font:inherit;color:inherit">
+          <div class="row spread"><b style="font-size:13px">${s.name}</b><span class="tiny dim">${s.bpmRange[0]}–${s.bpmRange[1]}</span></div>
+          <p class="tiny muted" style="margin:4px 0 0">${s.blurb}</p></button>`).join("")}
+      </div>
+      <div id="style-info"></div>
+      <div class="card pad" style="margin-bottom:16px">
+        <div class="grid" style="grid-template-columns:1fr 1fr">
+          <div><label class="lbl">BPM</label><input class="in" id="f-bpm" type="number" placeholder="90"></div>
+          <div class="grid" style="grid-template-columns:1fr 1fr;gap:10px">
+            <div><label class="lbl">Key</label><input class="in" id="f-key" value="C"></div>
+            <div><label class="lbl">Scale</label><select class="in" id="f-scale"><option>Minor</option><option>Major</option><option>Dorian</option><option>Phrygian</option><option>Minor Pentatonic</option><option>Harmonic Minor</option></select></div>
+          </div>
+          <div><label class="lbl">Mood</label><input class="in" id="f-mood" placeholder="dark, nostalgic, aggressive…"></div>
+          <div><label class="lbl">Reference track(s)</label><input class="in" id="f-ref" placeholder="Artist – Track"></div>
+        </div>
+      </div>
+      <div class="row" style="justify-content:flex-end">
+        <a class="btn g" href="#/projects">Cancel</a>
+        <button class="btn p" id="f-create" disabled>Create & start workflow →</button>
+      </div>
+      <p class="tiny dim" style="text-align:right" id="f-hint">Add a title and pick a substyle to continue.</p>
+    </div>`,"new");
+
+  let chosen=null;
+  const refresh=()=>{
+    const ok=chosen&&$("#f-title").value.trim();
+    $("#f-create").disabled=!ok;
+    $("#f-hint").style.display=ok?"none":"block";
+  };
+  document.querySelectorAll(".style-pick").forEach(btn=>btn.addEventListener("click",()=>{
+    chosen=btn.dataset.id;
+    document.querySelectorAll(".style-pick").forEach(b=>{
+      b.style.borderColor=b.dataset.id===chosen?"rgba(167,139,250,.7)":"";
+      b.style.background=b.dataset.id===chosen?"rgba(167,139,250,.08)":"";
+    });
+    const s=SUBSTYLE_MAP[chosen];
+    if(!$("#f-bpm").value) $("#f-bpm").value=Math.round((s.bpmRange[0]+s.bpmRange[1])/2);
+    $("#style-info").innerHTML=`<div class="card pad" style="border-left:2px solid rgba(167,139,250,.5);margin-bottom:16px">
+      <b style="font-size:13px">${s.name}</b><p class="small muted" style="margin:3px 0 8px">${s.grooveFeel}</p>
+      <div class="row tiny muted" style="gap:6px"><span style="background:var(--ink-800);border-radius:6px;padding:3px 8px">BPM ${s.bpmRange[0]}–${s.bpmRange[1]}</span><span style="background:var(--ink-800);border-radius:6px;padding:3px 8px">Swing ~${s.defaultSwing}%</span></div></div>`;
+    refresh();
+  }));
+  $("#f-title").addEventListener("input",refresh);
+  $("#f-create").addEventListener("click",()=>{
+    const p=createProject({
+      title:$("#f-title").value.trim(), producerName:$("#f-producer").value.trim(),
+      substyle:chosen, bpm:Number($("#f-bpm").value)||undefined,
+      key:$("#f-key").value, scale:$("#f-scale").value,
+      mood:$("#f-mood").value.trim(), referenceTracks:$("#f-ref").value.trim(),
+    });
+    projects=[p,...projects]; saveProjects(projects);
+    location.hash=`#/p/${p.id}/workflow`;
+  });
+}
+
+function viewNotFound(){
+  shell(`<div class="card pad" style="text-align:center;padding:48px"><div style="font-size:30px">🤔</div>
+    <h3>Project not found</h3><p class="small muted">It may have been deleted, or this link is from another browser.</p>
+    <a class="btn p" href="#/projects">Back to projects</a></div>`,"projects");
+}
+
+/* ---------- OVERVIEW ---------- */
+function viewOverview(p){
+  const style=SUBSTYLE_MAP[p.substyle], {done,pct}=progressOf(p);
+  const nid=nextStageId(p), next=STAGE_MAP[nid];
+  const ccDone=p.completionChecklist.filter(c=>c.done).length;
+  const ccPct=Math.round(ccDone/p.completionChecklist.length*100);
+  shell(`
+    ${projectTabs(p,"overview")}
+    <div class="row spread" style="align-items:flex-start;margin-bottom:18px">
+      <div><h1>${esc(p.title)}</h1>
+      <p class="small muted" style="margin:0">${esc(p.producerName?p.producerName+" · ":"")}${style.name} · ${p.bpm} BPM · ${esc(p.key)} ${esc(p.scale)}${p.mood?" · "+esc(p.mood):""}</p></div>
+      <button class="btn s xs danger" id="del-proj">Delete project</button>
+    </div>
+    <div class="grid" style="grid-template-columns:2fr 1fr;margin-bottom:14px">
+      <div class="card pad">
+        <div class="row spread" style="margin-bottom:8px"><span class="sec-h" style="margin:0">Production progress</span><span class="tiny muted">${done} / ${STAGES.length} stages</span></div>
+        <div class="bar" style="margin-bottom:14px"><div style="width:${pct}%"></div></div>
+        <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:4px">
+          ${STAGES.map((s,i)=>{const st=(p.stageStates[s.id]||{}).status||"not-started";
+            return `<a href="#/p/${p.id}/workflow/${s.id}" class="row" style="gap:8px;padding:5px 8px;border-radius:8px;font-size:12px" onmouseover="this.style.background='var(--ink-800)'" onmouseout="this.style.background=''">
+              <span class="stage-num ${st==="complete"?"done":st==="in-progress"?"prog":""}" style="width:18px;height:18px">${st==="complete"?"✓":i+1}</span>
+              <span class="dim" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.name}</span></a>`;}).join("")}
+        </div>
+      </div>
+      <div class="card pad" style="border-color:rgba(167,139,250,.3);background:rgba(167,139,250,.04);display:flex;flex-direction:column">
+        <span class="kicker">Next recommended</span>
+        <b style="font-size:16px">${next.name}</b>
+        <p class="small muted" style="flex:1">${next.objective}</p>
+        <a class="btn p" href="#/p/${p.id}/workflow/${nid}">Continue →</a>
+      </div>
+    </div>
+    <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(180px,1fr));margin-bottom:18px">
+      ${[["workflow","🎚","Workflow"],["arrangement","📐","Arrangement"],["ideas","💡","Idea bank"],["hardware","🔌","Hardware"]]
+        .map(([k,i,l])=>`<a class="card pad hov row" style="gap:10px" href="#/p/${p.id}/${k}"><span style="font-size:19px">${i}</span><b style="font-size:13px">${l}</b></a>`).join("")}
+    </div>
+    <div class="grid" style="grid-template-columns:2fr 1fr">
+      <div>
+        <div class="card pad" style="margin-bottom:14px">
+          <div class="sec-h">Project details</div>
+          <div class="grid" style="grid-template-columns:1fr 1fr">
+            ${textField(p,"title","Title")}${textField(p,"producerName","Producer / artist")}
+            <div><label class="lbl">Substyle</label><select class="in" data-pfield="substyle">${SUBSTYLES.map(s=>`<option value="${s.id}" ${s.id===p.substyle?"selected":""}>${s.name}</option>`).join("")}</select></div>
+            ${numField(p,"bpm",`BPM (${style.bpmRange[0]}–${style.bpmRange[1]} typical)`)}
+            ${numField(p,"swing","Swing (%)")}
+            <div class="grid" style="grid-template-columns:1fr 1fr;gap:10px">${textField(p,"key","Key")}${textField(p,"scale","Scale")}</div>
+            ${textField(p,"mood","Mood")}
+          </div>
+        </div>
+        <div class="card pad">
+          <div class="sec-h">References & context</div>
+          ${areaField(p,"referenceTracks","Reference tracks",2)}
+          ${areaField(p,"grooveNotes","Swing / groove notes",2)}
+          ${areaField(p,"hardwareSetupNotes","Hardware setup notes",2)}
+          ${areaField(p,"exportNotes","Export / mix-master notes",2)}
+        </div>
+      </div>
+      <div>
+        <div class="card pad" style="margin-bottom:14px">
+          <div class="row spread" style="margin-bottom:8px"><span class="sec-h" style="margin:0">Song completion</span><span class="tiny muted">${ccPct}%</span></div>
+          <div class="bar" style="margin-bottom:12px"><div style="width:${ccPct}%"></div></div>
+          ${p.completionChecklist.map(c=>checkHTML(c,"cc")).join("")}
+          ${ccPct===100?`<p class="small" style="color:#6ee7b7;border:1px solid rgba(52,211,153,.4);background:rgba(52,211,153,.1);border-radius:9px;padding:8px 12px">🎉 Track complete — bounce it and start the next one.</p>`:""}
+        </div>
+        ${p.decisions.length?`<div class="card pad"><div class="sec-h">Saved decisions (${p.decisions.length})</div>
+          <div style="display:flex;flex-direction:column;gap:7px">${p.decisions.slice(0,8).map(d=>`<div class="decision">${esc(d.text)}</div>`).join("")}</div></div>`:""}
+      </div>
+    </div>`,"projects");
+
+  $("#del-proj").addEventListener("click",()=>{
+    if(confirm(`Delete "${p.title}"? This can't be undone.`)){
+      projects=projects.filter(x=>x.id!==p.id); saveProjects(projects);
+      location.hash="#/projects";
+    }
+  });
+  bindProjectFields(p.id);
+  bindChecks(p.id,"cc",(proj,cid)=>({...proj,completionChecklist:proj.completionChecklist.map(c=>c.id===cid?{...c,done:!c.done}:c)}));
+}
+function textField(p,key,label){ return `<div><label class="lbl">${label}</label><input class="in" data-pfield="${key}" value="${esc(p[key])}"></div>`; }
+function numField(p,key,label){ return `<div><label class="lbl">${label}</label><input class="in" type="number" data-pfield="${key}" data-num="1" value="${esc(p[key])}"></div>`; }
+function areaField(p,key,label,rows){ return `<div style="margin-bottom:10px"><label class="lbl">${label}</label><textarea class="in" rows="${rows}" data-pfield="${key}">${esc(p[key])}</textarea></div>`; }
+function bindProjectFields(id){
+  document.querySelectorAll("[data-pfield]").forEach(el=>el.addEventListener("change",()=>{
+    const v=el.dataset.num?Number(el.value)||0:el.value;
+    updateProject(id,p=>({...p,[el.dataset.pfield]:v}));
+    if(el.dataset.pfield==="substyle") route();
+  }));
+}
+function checkHTML(c,group){
+  return `<label class="check ${c.done?"done":""}"><input type="checkbox" data-check="${group}" data-cid="${c.id}" ${c.done?"checked":""} style="margin-top:2px"><span style="font-size:13px">${esc(c.label)}</span></label>`;
+}
+function bindChecks(projectId,group,updater){
+  document.querySelectorAll(`[data-check="${group}"]`).forEach(el=>el.addEventListener("change",()=>{
+    updateProject(projectId,p=>updater(p,el.dataset.cid));
+    route();
+  }));
+}
+
+/* ---------- WORKFLOW ---------- */
+function viewWorkflow(p,stageParam){
+  const stageId=(stageParam&&STAGE_MAP[stageParam])?stageParam:(UI.workflowStage&&STAGE_MAP[UI.workflowStage]?UI.workflowStage:nextStageId(p));
+  UI.workflowStage=stageId;
+  const stage=STAGE_MAP[stageId], state=p.stageStates[stageId];
+  const style=SUBSTYLE_MAP[p.substyle];
+  const idx=STAGES.findIndex(s=>s.id===stageId);
+  const savedTitles=new Set(p.decisions.map(d=>d.text.split(" — ")[0]));
+
+  // curated options: stage categories, style-fit first
+  const cats=new Set(stage.relatedCategories);
+  const inStage=CREATIVE_OPTIONS.filter(o=>cats.has(o.category));
+  const onStyle=inStage.filter(o=>o.styleFit==="all"||o.styleFit.includes(p.substyle));
+  const curated=[...onStyle,...inStage.filter(o=>!onStyle.includes(o))].slice(0,6);
+
+  // ideas: keep last generation per stage so re-render doesn't reshuffle
+  const ideaKey=p.id+":"+stageId;
+  if(!UI.lastIdeas[ideaKey]) UI.lastIdeas[ideaKey]=generateIdeas(p,{stageId});
+  const ideas=UI.lastIdeas[ideaKey];
+
+  const stageDecisions=p.decisions.filter(d=>d.stageId===stageId);
+  const statusChip=state.status==="complete"?`<span class="chip ok">Complete</span>`:state.status==="in-progress"?`<span class="chip warn">In progress</span>`:`<span class="chip">Not started</span>`;
+
+  shell(`
+    ${projectTabs(p,"workflow")}
+    <div class="two-col">
+      <div>
+        <div class="sec-h" style="padding:0 4px">Production stages</div>
+        <div class="card" style="padding:8px;position:sticky;top:20px">
+          ${STAGES.map((s,i)=>{const st=(p.stageStates[s.id]||{}).status||"not-started";
+            return `<button class="stage-item ${s.id===stageId?"active":""}" data-goto="${s.id}">
+              <span class="stage-num ${st==="complete"?"done":st==="in-progress"?"prog":s.id===stageId?"cur":""}">${st==="complete"?"✓":i+1}</span>
+              <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.name}</span></button>`;}).join("")}
+        </div>
+      </div>
+      <div>
+        <div class="card pad" style="margin-bottom:18px">
+          <div class="row spread" style="margin-bottom:8px">
+            <div class="row"><span class="chip on">${style.name}</span>${statusChip}</div>
+            ${state.status!=="complete"
+              ?`<button class="btn p xs" id="st-complete">✓ Mark stage complete</button>`
+              :`<button class="btn g xs" id="st-reopen">Reopen stage</button>`}
+          </div>
+          <h2 style="font-size:19px">${stage.name}</h2>
+          <p class="small muted" style="max-width:560px;margin:4px 0 0">${stage.objective}</p>
+        </div>
+
+        <div class="sec-h">What to do on each device</div>
+        <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(230px,1fr));margin-bottom:18px">
+          ${["mpc","rytm","a4"].map(d=>`<div class="card guide" style="border-left-color:${DEVICE_META[d].color}">
+            <div class="row" style="gap:7px;margin-bottom:5px"><span class="dot" style="background:${DEVICE_META[d].color}"></span><b style="font-size:13px;color:${DEVICE_META[d].color}">${DEVICE_META[d].full}</b></div>
+            <p class="small" style="margin:0;color:#cbd2dd">${stage.guidance[d]}</p></div>`).join("")}
+        </div>
+
+        <div class="card pad" style="margin-bottom:18px">
+          <div class="sec-h">Creative prompts</div>
+          <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px">
+            ${stage.creativePrompts.map(pr=>`<div class="prompt"><b>→</b>${pr}</div>`).join("")}
+          </div>
+        </div>
+
+        <div class="grid" style="grid-template-columns:1fr 1fr;align-items:start">
+          <div>
+            <div class="sec-h">Creative options for this stage</div>
+            <div style="display:flex;flex-direction:column;gap:12px">
+              ${curated.map(o=>optionCardHTML(o,savedTitles.has(o.title))).join("")}
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:18px">
+            <div>
+              <div class="sec-h">Generate fresh ideas</div>
+              ${ideaPanelHTML(p,ideas)}
+            </div>
+            <div class="card pad">
+              <div class="sec-h">Stage checklist</div>
+              ${state.checklist.map(c=>checkHTML(c,"st")).join("")}
+              <p class="tiny dim" style="margin:6px 0 0;padding:0 8px">${state.checklist.filter(c=>c.done).length} / ${state.checklist.length} complete</p>
+            </div>
+            <div class="card pad">
+              <label class="lbl">Stage notes</label>
+              <textarea class="in" rows="4" id="st-notes" placeholder="Decisions, ideas, reminders for this stage…">${esc(state.notes)}</textarea>
+            </div>
+          </div>
+        </div>
+
+        ${stageDecisions.length?`<div class="card pad" style="margin-top:18px"><div class="sec-h">Saved decisions (${stageDecisions.length})</div>
+          <div style="display:flex;flex-direction:column;gap:7px">${stageDecisions.map(d=>`<div class="decision"><span class="chip" style="flex-shrink:0">${CATEGORY_LABELS[d.category]}</span><span>${esc(d.text)}</span></div>`).join("")}</div></div>`:""}
+
+        <div class="row spread" style="margin-top:20px">
+          <button class="btn g" ${idx<=0?"disabled":""} data-goto="${idx>0?STAGES[idx-1].id:""}">← ${idx>0?STAGES[idx-1].name:"Previous"}</button>
+          <button class="btn p" ${idx>=STAGES.length-1?"disabled":""} data-goto="${idx<STAGES.length-1?STAGES[idx+1].id:""}">${idx<STAGES.length-1?STAGES[idx+1].name:"Last stage"} →</button>
+        </div>
+      </div>
+    </div>`,"projects");
+
+  document.querySelectorAll("[data-goto]").forEach(el=>el.addEventListener("click",()=>{
+    if(el.dataset.goto){ UI.workflowStage=el.dataset.goto; location.hash=`#/p/${p.id}/workflow/${el.dataset.goto}`; }
+  }));
+  const setStatus=s=>{updateProject(p.id,proj=>({...proj,stageStates:{...proj.stageStates,[stageId]:{...proj.stageStates[stageId],status:s}}}));route();};
+  const elC=$("#st-complete"); if(elC) elC.addEventListener("click",()=>setStatus("complete"));
+  const elR=$("#st-reopen"); if(elR) elR.addEventListener("click",()=>setStatus("in-progress"));
+  bindChecks(p.id,"st",(proj,cid)=>{
+    const st=proj.stageStates[stageId];
+    const cl=st.checklist.map(c=>c.id===cid?{...c,done:!c.done}:c);
+    const status=st.status==="complete"?"complete":(cl.some(c=>c.done)?"in-progress":st.status);
+    return {...proj,stageStates:{...proj.stageStates,[stageId]:{...st,checklist:cl,status}}};
+  });
+  $("#st-notes").addEventListener("change",e=>{
+    updateProject(p.id,proj=>({...proj,stageStates:{...proj.stageStates,[stageId]:{...proj.stageStates[stageId],notes:e.target.value}}}));
+  });
+  bindOptionCards(p.id,stageId);
+  bindIdeaPanel(p,{stageId,ideaKey});
+}
+
+function optionCardHTML(o,saved){
+  return `<div class="card opt-card hov" data-opt="${o.id}">
+    <div class="row spread" style="align-items:flex-start;margin-bottom:6px"><b style="font-size:13px;line-height:1.35">${o.title}</b>${devChip(o.recommendedDevice)}</div>
+    <p class="small muted" style="margin:0 0 8px">${o.description}</p>
+    <div class="row" style="gap:14px;margin-bottom:8px">${diffDot(o.difficulty)}<span class="tiny dim">${o.whenToUse}</span></div>
+    <div class="opt-detail" style="display:none;background:var(--ink-900);border:1px solid var(--ink-700);border-radius:9px;padding:11px;margin-bottom:8px">
+      <div class="tiny" style="font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--dim)">How to do it</div>
+      <ol class="steps">${o.implementationSteps.map(s=>`<li>${s}</li>`).join("")}</ol>
+      <div class="tiny" style="font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--dim);margin-top:8px">Variations to try</div>
+      <ul class="vars">${o.variationIdeas.map(s=>`<li>${s}</li>`).join("")}</ul>
+    </div>
+    <div class="row spread" style="margin-top:auto">
+      <button class="btn s xs opt-toggle">Show steps</button>
+      <button class="btn ${saved?"g":"p"} xs opt-save" ${saved?"disabled":""}>${saved?"✓ Saved":"Save to project"}</button>
+    </div>
+  </div>`;
+}
+function bindOptionCards(projectId,stageId){
+  document.querySelectorAll("[data-opt]").forEach(card=>{
+    const opt=CREATIVE_OPTIONS.find(o=>o.id===card.dataset.opt);
+    card.querySelector(".opt-toggle").addEventListener("click",e=>{
+      const d=card.querySelector(".opt-detail");
+      const open=d.style.display!=="none";
+      d.style.display=open?"none":"block";
+      e.target.textContent=open?"Show steps":"Hide steps";
+    });
+    const save=card.querySelector(".opt-save");
+    save.addEventListener("click",()=>{
+      saveDecision(projectId,{category:opt.category,text:`${opt.title} — ${opt.description}`,device:opt.recommendedDevice,stageId});
+      save.textContent="✓ Saved"; save.disabled=true; save.classList.remove("p"); save.classList.add("g");
+    });
+  });
+}
+function ideaPanelHTML(p,ideas,title){
+  return `<div class="card pad">
+    <div class="row spread" style="margin-bottom:10px">
+      <div><b style="font-size:13px">${title||"Idea generator"}</b>
+      <div class="tiny dim">Tailored to ${p.substyle.replace(/-/g," ")} · ${p.bpm} BPM${p.mood?" · "+esc(p.mood):""}</div></div>
+      <button class="btn g xs" id="idea-regen">↻ Generate more</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      ${ideas.map(i=>`<div style="background:var(--ink-900);border:1px solid var(--ink-700);border-radius:9px;padding:11px" data-idea="${i.id}">
+        <div class="row" style="gap:6px;margin-bottom:6px"><span class="chip">${CATEGORY_LABELS[i.category]}</span>${devChip(i.device)}</div>
+        <p class="small" style="margin:0;color:#cbd2dd">${i.text}</p>
+        <div style="text-align:right;margin-top:8px"><button class="btn p xs idea-save">Save idea</button></div>
+      </div>`).join("")}
+    </div>
+  </div>`;
+}
+function bindIdeaPanel(p,{stageId,category,ideaKey}){
+  const regen=$("#idea-regen");
+  if(regen) regen.addEventListener("click",()=>{
+    UI.lastIdeas[ideaKey]=generateIdeas(p,{stageId,category,count:stageId?4:5});
+    route();
+  });
+  document.querySelectorAll("[data-idea]").forEach(el=>{
+    const idea=UI.lastIdeas[ideaKey].find(i=>i.id===el.dataset.idea);
+    el.querySelector(".idea-save").addEventListener("click",e=>{
+      saveDecision(p.id,{category:idea.category,text:idea.text,device:idea.device,stageId});
+      e.target.textContent="✓ Saved to project"; e.target.disabled=true;
+      e.target.classList.remove("p"); e.target.classList.add("s");
+    });
+  });
+}
+
+/* ---------- ARRANGEMENT ---------- */
+function viewArrangement(p){
+  const style=SUBSTYLE_MAP[p.substyle];
+  const total=p.sections.reduce((a,s)=>a+s.bars,0)||1;
+  if(UI.arrangeSel&&!p.sections.find(s=>s.id===UI.arrangeSel)) UI.arrangeSel=null;
+  const presets=["Intro","Verse","Pre-Hook","Hook","Bridge","Breakdown","Drop","Outro"];
+  shell(`
+    ${projectTabs(p,"arrangement")}
+    <h2>Arrangement</h2><p class="small dim" style="margin:0 0 16px">Build the song structure · ${style.arrangement}</p>
+    <div class="card pad" style="margin-bottom:14px">
+      <div class="row spread tiny dim" style="margin-bottom:8px"><span>Timeline</span><span>${total} bars total</span></div>
+      <div class="tl">
+        ${p.sections.map(s=>`<button class="e${s.energy} ${s.id===UI.arrangeSel?"sel":""}" style="width:${(s.bars/total*100).toFixed(2)}%" data-selsec="${s.id}" title="${esc(s.name)} · ${s.bars} bars · energy ${s.energy}">
+          <b>${esc(s.name)}</b><i>${s.bars} bars</i>
+          <div class="row" style="gap:3px;margin-top:3px">${s.activeDevices.map(d=>`<span class="dot" style="background:rgba(255,255,255,.85);width:5px;height:5px"></span>`).join("")}</div>
+        </button>`).join("")}
+      </div>
+      <div class="row tiny dim" style="gap:10px;margin-top:8px"><span>Energy:</span>
+        ${["1 low","2","3","4","5 peak"].map((l,i)=>`<span class="row" style="gap:4px"><span style="width:9px;height:9px;border-radius:2px" class="e${i+1}"></span>${l}</span>`).join("")}
+      </div>
+    </div>
+    <div class="card pad" style="margin-bottom:14px">
+      <div class="sec-h">Add a section</div>
+      <div class="row">${presets.map(n=>`<button class="btn g xs" data-addsec="${n}">＋ ${n}</button>`).join("")}</div>
+    </div>
+    ${p.sections.length===0
+      ?`<div class="card pad small muted" style="text-align:center;padding:40px">No sections yet — add one above.</div>`
+      :`<div class="grid g2">${p.sections.map(sectionEditorHTML).join("")}</div>`}`,"projects");
+
+  document.querySelectorAll("[data-selsec]").forEach(el=>el.addEventListener("click",()=>{UI.arrangeSel=el.dataset.selsec;route();}));
+  document.querySelectorAll("[data-addsec]").forEach(el=>el.addEventListener("click",()=>{
+    const name=el.dataset.addsec, isHook=/hook|drop|chorus/i.test(name);
+    const s={id:uid("sec"),name,bars:isHook?8:16,activeDevices:["mpc","rytm","a4"],
+      drumDensity:isHook?"full":"medium",bassActivity:isHook?"active":"groove",
+      melodicActivity:isHook?"full":"motif",energy:isHook?5:3,notes:""};
+    updateProject(p.id,proj=>({...proj,sections:[...proj.sections,s]}));
+    UI.arrangeSel=s.id; route();
+  }));
+  // field bindings
+  document.querySelectorAll("[data-sfield]").forEach(el=>el.addEventListener("change",()=>{
+    const [sid,key]=el.dataset.sfield.split("|");
+    let v=el.value;
+    if(key==="bars") v=Math.max(1,Number(v)||1);
+    if(key==="energy") v=Number(v);
+    updateProject(p.id,proj=>({...proj,sections:proj.sections.map(s=>s.id===sid?{...s,[key]:v}:s)}));
+    if(key!=="notes") route();
+  }));
+  document.querySelectorAll("[data-sdev]").forEach(el=>el.addEventListener("click",()=>{
+    const [sid,d]=el.dataset.sdev.split("|");
+    updateProject(p.id,proj=>({...proj,sections:proj.sections.map(s=>{
+      if(s.id!==sid) return s;
+      const has=s.activeDevices.includes(d);
+      return {...s,activeDevices:has?s.activeDevices.filter(x=>x!==d):[...s.activeDevices,d]};
+    })}));
+    route();
+  }));
+  document.querySelectorAll("[data-sdel]").forEach(el=>el.addEventListener("click",()=>{
+    updateProject(p.id,proj=>({...proj,sections:proj.sections.filter(s=>s.id!==el.dataset.sdel)}));
+    route();
+  }));
+}
+function sectionEditorHTML(s){
+  const sel=(key,opts,val)=>`<select class="in" data-sfield="${s.id}|${key}" style="text-transform:capitalize">${opts.map(o=>`<option ${o===val?"selected":""}>${o}</option>`).join("")}</select>`;
+  return `<div class="card pad">
+    <div class="row spread" style="margin-bottom:10px">
+      <input class="in" style="flex:1;font-weight:600" value="${esc(s.name)}" data-sfield="${s.id}|name">
+      <button class="btn s xs danger" data-sdel="${s.id}">Remove</button>
+    </div>
+    <div class="grid" style="grid-template-columns:1fr 1fr">
+      <div><label class="lbl">Bars</label><input class="in" type="number" min="1" max="64" value="${s.bars}" data-sfield="${s.id}|bars"></div>
+      <div><label class="lbl">Energy (${s.energy}/5)</label><input type="range" min="1" max="5" value="${s.energy}" data-sfield="${s.id}|energy"></div>
+    </div>
+    <div style="margin-top:10px"><label class="lbl">Active devices</label>
+      <div class="row">${["mpc","rytm","a4"].map(d=>`<button class="chip click ${s.activeDevices.includes(d)?d:""}" data-sdev="${s.id}|${d}">${DEVICE_META[d].short}</button>`).join("")}</div>
+    </div>
+    <div class="grid" style="grid-template-columns:1fr 1fr 1fr;margin-top:10px">
+      <div><label class="lbl">Drums</label>${sel("drumDensity",["none","sparse","medium","busy","full"],s.drumDensity)}</div>
+      <div><label class="lbl">Bass</label>${sel("bassActivity",["none","sustained","groove","active"],s.bassActivity)}</div>
+      <div><label class="lbl">Melody</label>${sel("melodicActivity",["none","pad","motif","lead","full"],s.melodicActivity)}</div>
+    </div>
+    <div style="margin-top:10px"><label class="lbl">Mutes / fills / drops / automation</label>
+      <textarea class="in" rows="2" data-sfield="${s.id}|notes" placeholder="e.g. mute hats first 4 bars, snare-roll into hook…">${esc(s.notes)}</textarea></div>
+  </div>`;
+}
+
+/* ---------- IDEAS ---------- */
+function viewIdeas(p){
+  const cat=UI.ideasCategory;
+  const ideaKey=p.id+":cat:"+cat;
+  if(!UI.lastIdeas[ideaKey]) UI.lastIdeas[ideaKey]=generateIdeas(p,{category:cat,count:5});
+  const ideas=UI.lastIdeas[ideaKey];
+  const savedTitles=new Set(p.decisions.map(d=>d.text.split(" — ")[0]));
+  const options=CREATIVE_OPTIONS.filter(o=>o.category===cat);
+  const onStyle=options.filter(o=>o.styleFit==="all"||o.styleFit.includes(p.substyle));
+  const ordered=[...onStyle,...options.filter(o=>!onStyle.includes(o))];
+  shell(`
+    ${projectTabs(p,"ideas")}
+    <h2>Idea bank</h2><p class="small dim" style="margin:0 0 16px">Generate context-aware moves, or browse the full creative library by category</p>
+    ${ideaPanelHTML(p,ideas,`${CATEGORY_LABELS[cat]} — generated for this beat`)}
+    <div class="row" style="margin:16px 0">
+      ${CATEGORIES.map(c=>`<button class="chip click ${c===cat?"on":""}" data-cat="${c}">${CATEGORY_LABELS[c]}</button>`).join("")}
+    </div>
+    <p class="tiny dim">${ordered.length} options · ${onStyle.length} tuned for ${p.substyle.replace(/-/g," ")}</p>
+    <div class="grid g3">${ordered.map(o=>optionCardHTML(o,savedTitles.has(o.title))).join("")}</div>`,"projects");
+
+  document.querySelectorAll("[data-cat]").forEach(el=>el.addEventListener("click",()=>{UI.ideasCategory=el.dataset.cat;route();}));
+  bindIdeaPanel(p,{category:cat,ideaKey});
+  bindOptionCards(p.id,undefined);
+}
+
+/* ---------- HARDWARE ---------- */
+function viewHardware(p){
+  const fields=[["clock","Master clock & transport"],["midiOut","MIDI out → Elektrons"],["audio","Audio recording / monitoring"],
+    ["arrangementCapture","Arrangement capture strategy"],["patternToSong","Pattern-to-song workflow"],["performanceCapture","Performance capture workflow"]];
+  shell(`
+    ${projectTabs(p,"hardware")}
+    <h2>Hardware workflow planner</h2><p class="small dim" style="margin:0 0 16px">MPC Live III as master clock & arranger · Rytm + A4 as synced instruments</p>
+    <div class="notice" style="margin-bottom:16px"><b>Editable assumptions.</b> These are sensible defaults for an MPC-as-master setup — not verified hardware specs. Confirm against your own MIDI config and adjust freely.</div>
+    <div class="card pad" style="margin-bottom:16px">
+      <div class="sec-h">Clock & sync</div>
+      <label class="check"><input type="checkbox" id="hw-clock" ${p.routing.sendsMidiClock?"checked":""} style="margin-top:2px"><span style="font-size:13px">MPC Live III sends MIDI clock + start/stop (Rytm & A4 receive)</span></label>
+    </div>
+    <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr));margin-bottom:16px">
+      ${p.devices.map(d=>`<div class="card pad" style="border-top:2px solid ${DEVICE_META[d.id].color}">
+        <div class="row" style="gap:7px;margin-bottom:10px"><span class="dot" style="background:${DEVICE_META[d.id].color}"></span><b style="font-size:13px;color:${DEVICE_META[d.id].color}">${d.name}</b></div>
+        <label class="lbl">Role</label><textarea class="in" rows="2" data-dfield="${d.id}|role" style="margin-bottom:10px">${esc(d.role)}</textarea>
+        <div class="grid" style="grid-template-columns:1fr 1fr;margin-bottom:10px">
+          <div><label class="lbl">MIDI channel</label><input class="in" value="${esc(d.midiChannel)}" data-dfield="${d.id}|midiChannel"></div>
+          <div><label class="lbl">Clock role</label><select class="in" data-dfield="${d.id}|clockRole">${["master","receives","internal","off"].map(c=>`<option ${c===d.clockRole?"selected":""}>${c}</option>`).join("")}</select></div>
+        </div>
+        <label class="lbl">Audio routing</label><textarea class="in" rows="2" data-dfield="${d.id}|audioRoutingNotes" style="margin-bottom:10px">${esc(d.audioRoutingNotes)}</textarea>
+        <div class="lbl">Preferred use cases</div>
+        <div class="row" style="gap:5px;margin-bottom:10px">${d.preferredUseCases.map(u=>`<span class="chip">${esc(u)}</span>`).join("")}</div>
+        <label class="lbl">Your notes</label><textarea class="in" rows="2" data-dfield="${d.id}|userNotes" placeholder="Patch names, kit, CV outs, quirks…">${esc(d.userNotes)}</textarea>
+      </div>`).join("")}
+    </div>
+    <div class="card pad">
+      <div class="sec-h">Routing & workflow strategy</div>
+      <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(320px,1fr))">
+        ${fields.map(([k,l])=>`<div><label class="lbl">${l}</label><textarea class="in" rows="3" data-rfield="${k}">${esc(p.routing.notes[k])}</textarea></div>`).join("")}
+      </div>
+    </div>`,"projects");
+
+  $("#hw-clock").addEventListener("change",()=>{
+    updateProject(p.id,proj=>({...proj,routing:{...proj.routing,sendsMidiClock:!proj.routing.sendsMidiClock}}));
+  });
+  document.querySelectorAll("[data-dfield]").forEach(el=>el.addEventListener("change",()=>{
+    const [did,key]=el.dataset.dfield.split("|");
+    updateProject(p.id,proj=>({...proj,devices:proj.devices.map(d=>d.id===did?{...d,[key]:el.value}:d)}));
+  }));
+  document.querySelectorAll("[data-rfield]").forEach(el=>el.addEventListener("change",()=>{
+    updateProject(p.id,proj=>({...proj,routing:{...proj.routing,notes:{...proj.routing.notes,[el.dataset.rfield]:el.value}}}));
+  }));
+}
+
+/* ---------- SETTINGS ---------- */
+function viewSettings(){
+  shell(`
+    <h2>Settings</h2><p class="small dim" style="margin:0 0 18px">Local-first — all data lives in this browser</p>
+    <div class="card pad" style="margin-bottom:16px">
+      <div class="sec-h">Your data</div>
+      <p class="small muted">${projects.length} project${projects.length===1?"":"s"} stored locally. Export a backup or move projects between browsers/devices. Backups are interchangeable with the full web app.</p>
+      <div class="row">
+        <button class="btn g" id="exp" ${projects.length===0?"disabled":""}>↓ Export backup (JSON)</button>
+        <button class="btn g" id="imp-btn">↑ Import backup</button>
+        <input type="file" id="imp" accept="application/json" style="display:none">
+        <button class="btn s danger" id="clear">Clear all data</button>
+      </div>
+      <p class="small" id="msg" style="color:var(--accent-soft)"></p>
+    </div>
+    <div class="card pad" style="margin-bottom:16px">
+      <div class="sec-h">Default rig assumptions</div>
+      <p class="small muted">These seed every new project and are fully editable per-project on the Hardware page. They're sensible defaults — not verified hardware specs.</p>
+      <div class="grid g3">
+        ${DEFAULT_DEVICES.map(d=>`<div style="background:var(--ink-900);border:1px solid var(--ink-700);border-radius:10px;padding:13px">
+          <div style="margin-bottom:7px">${devChip(d.id,true)}</div>
+          <p class="tiny muted" style="margin:0 0 8px">${d.role}</p>
+          <div class="row spread tiny dim"><span>MIDI</span><span class="muted" style="text-align:right">${esc(d.midiChannel)}</span></div>
+          <div class="row spread tiny dim"><span>Clock</span><span class="muted" style="text-transform:capitalize">${d.clockRole}</span></div>
+        </div>`).join("")}
+      </div>
+      <div class="small muted" style="background:var(--ink-900);border:1px solid var(--ink-700);border-radius:10px;padding:13px;margin-top:12px">
+        <b style="color:var(--text)">Clock default:</b> ${DEFAULT_ROUTING.notes.clock}
+      </div>
+    </div>
+    <div class="card pad small muted">
+      <div class="sec-h">About</div>
+      <p style="margin:0"><b style="color:var(--text)">Beatsmith (standalone build)</b> is a single-file, local-first hip-hop production copilot for the Akai MPC Live III, Elektron Analog Rytm MKII, and Analog Four MKII. No install, no account, no cloud — open this file in any browser and your projects stay in that browser's storage.</p>
+    </div>`,"settings");
+
+  $("#exp").addEventListener("click",()=>{
+    const blob=new Blob([JSON.stringify(projects,null,2)],{type:"application/json"});
+    const a=document.createElement("a");
+    a.href=URL.createObjectURL(blob);
+    a.download=`beatsmith-projects-${new Date().toISOString().slice(0,10)}.json`;
+    a.click(); URL.revokeObjectURL(a.href);
+  });
+  $("#imp-btn").addEventListener("click",()=>$("#imp").click());
+  $("#imp").addEventListener("change",e=>{
+    const f=e.target.files[0]; if(!f) return;
+    const r=new FileReader();
+    r.onload=()=>{
+      try{
+        const data=JSON.parse(String(r.result));
+        const arr=Array.isArray(data)?data:[data];
+        const existing=new Set(projects.map(x=>x.id));
+        let added=0;
+        for(const pr of arr){ if(pr&&pr.id&&!existing.has(pr.id)){projects=[pr,...projects];added++;} }
+        saveProjects(projects);
+        $("#msg").textContent=`Imported ${added} project${added===1?"":"s"}.`;
+      }catch(err){ $("#msg").textContent="Could not parse that file."; }
+    };
+    r.readAsText(f);
+  });
+  $("#clear").addEventListener("click",()=>{
+    if(confirm("Delete ALL projects from this browser? This cannot be undone.")){
+      localStorage.removeItem(KEY); projects=[]; route();
+    }
+  });
+}
+
+/* ============================== BOOT ============================== */
+route();
+</script>
+</body>
+</html>

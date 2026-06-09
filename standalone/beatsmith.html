@@ -1,0 +1,962 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Beatsmith — MPC + Elektron Hip-Hop Copilot (Standalone)</title>
+<style>
+  :root{
+    --ink-950:#070809;--ink-900:#0c0e12;--ink-850:#101319;--ink-800:#151922;
+    --ink-700:#1d222d;--ink-600:#272e3b;--ink-500:#3a4456;
+    --mpc:#f6c026;--rytm:#ff5c5c;--a4:#5cc8ff;
+    --accent:#a78bfa;--accent-soft:#c4b5fd;
+    --text:#e7eaf0;--muted:#9aa3b2;--dim:#6b7280;
+  }
+  *{box-sizing:border-box}
+  html{color-scheme:dark}
+  body{margin:0;background:var(--ink-950);color:var(--text);
+    font:14px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    -webkit-font-smoothing:antialiased}
+  a{color:inherit;text-decoration:none}
+  ::-webkit-scrollbar{width:10px;height:10px}
+  ::-webkit-scrollbar-track{background:var(--ink-900)}
+  ::-webkit-scrollbar-thumb{background:var(--ink-600);border-radius:99px;border:2px solid var(--ink-900)}
+
+  .layout{display:flex;min-height:100vh}
+  .sidebar{position:sticky;top:0;height:100vh;width:232px;flex-shrink:0;display:flex;flex-direction:column;
+    border-right:1px solid var(--ink-800);background:var(--ink-900);padding:22px 14px}
+  @media(max-width:820px){.sidebar{display:none}}
+  .logo{display:flex;align-items:center;gap:10px;margin-bottom:28px;padding:0 4px}
+  .logo-badge{display:grid;place-items:center;width:36px;height:36px;border-radius:10px;
+    background:linear-gradient(135deg,var(--accent),var(--a4));color:var(--ink-950);font-weight:700;font-size:17px}
+  .logo b{display:block;font-size:13px}
+  .logo small{color:var(--dim);font-size:11px}
+  .nav a{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:9px;color:var(--muted);font-size:13px;margin-bottom:2px}
+  .nav a:hover{background:var(--ink-850);color:var(--text)}
+  .nav a.active{background:var(--ink-800);color:var(--text)}
+  .chain{margin-top:auto;border:1px solid var(--ink-800);background:var(--ink-850);border-radius:10px;padding:12px;font-size:11px}
+  .chain h4{margin:0 0 8px;font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--dim)}
+  .chain div{display:flex;align-items:center;gap:7px;margin:5px 0}
+  .dot{width:6px;height:6px;border-radius:99px;display:inline-block;flex-shrink:0}
+  .footnote{margin-top:10px;color:#4b5563;font-size:10px;padding:0 2px}
+
+  main{flex:1;min-width:0}
+  .wrap{max-width:1060px;margin:0 auto;padding:30px 24px 60px}
+
+  .card{background:var(--ink-850);border:1px solid var(--ink-700);border-radius:12px;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.03),0 8px 24px -12px rgba(0,0,0,.6)}
+  .card.pad{padding:18px}
+  .card.hov:hover{border-color:var(--ink-600);background:var(--ink-800)}
+  .grid{display:grid;gap:14px}
+  .g2{grid-template-columns:repeat(auto-fill,minmax(290px,1fr))}
+  .g3{grid-template-columns:repeat(auto-fill,minmax(250px,1fr))}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .spread{justify-content:space-between}
+
+  h1{font-size:24px;margin:0 0 4px}
+  h2{font-size:17px;margin:0 0 4px}
+  h3{font-size:14px;margin:0 0 4px}
+  .kicker{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--accent-soft);margin:0 0 6px}
+  .sec-h{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);margin:0 0 10px;font-weight:600}
+  .muted{color:var(--muted)}.dim{color:var(--dim)}.small{font-size:12px}.tiny{font-size:11px}
+
+  .btn{display:inline-flex;align-items:center;gap:6px;border:none;border-radius:9px;padding:8px 14px;
+    font:inherit;font-size:13px;font-weight:500;cursor:pointer;transition:.15s}
+  .btn:disabled{opacity:.45;cursor:not-allowed}
+  .btn.p{background:var(--accent);color:var(--ink-950)}
+  .btn.p:hover:not(:disabled){background:var(--accent-soft)}
+  .btn.g{background:var(--ink-800);color:var(--text);border:1px solid var(--ink-700)}
+  .btn.g:hover:not(:disabled){border-color:var(--ink-600);background:var(--ink-700)}
+  .btn.s{background:transparent;color:var(--muted)}
+  .btn.s:hover{background:var(--ink-800)}
+  .btn.xs{padding:4px 10px;font-size:12px}
+  .btn.danger{color:#fb7185}
+
+  .chip{display:inline-flex;align-items:center;gap:5px;border-radius:99px;border:1px solid var(--ink-600);
+    background:var(--ink-800);color:var(--muted);padding:2px 10px;font-size:11px;font-weight:500;cursor:default}
+  .chip.click{cursor:pointer}
+  .chip.on{border-color:rgba(167,139,250,.6);background:rgba(167,139,250,.15);color:var(--accent-soft)}
+  .chip.mpc{border-color:rgba(246,192,38,.4);background:rgba(246,192,38,.12);color:var(--mpc)}
+  .chip.rytm{border-color:rgba(255,92,92,.4);background:rgba(255,92,92,.12);color:var(--rytm)}
+  .chip.a4{border-color:rgba(92,200,255,.4);background:rgba(92,200,255,.12);color:var(--a4)}
+  .chip.ok{border-color:rgba(52,211,153,.4);background:rgba(52,211,153,.1);color:#6ee7b7}
+  .chip.warn{border-color:rgba(251,191,36,.4);background:rgba(251,191,36,.1);color:#fcd34d}
+
+  .bar{height:8px;border-radius:99px;background:var(--ink-700);overflow:hidden}
+  .bar>div{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--accent),var(--a4));transition:width .3s}
+
+  label.lbl{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:0 0 5px;font-weight:500}
+  input.in,select.in,textarea.in{width:100%;background:var(--ink-900);border:1px solid var(--ink-700);border-radius:9px;
+    color:var(--text);padding:8px 11px;font:inherit;font-size:13px}
+  input.in:focus,select.in:focus,textarea.in:focus{outline:none;border-color:rgba(167,139,250,.6)}
+  textarea.in{resize:vertical}
+  input[type=range]{accent-color:var(--accent);width:100%}
+  input[type=checkbox]{accent-color:var(--accent)}
+
+  .check{display:flex;gap:10px;align-items:flex-start;padding:6px 8px;border-radius:8px;cursor:pointer}
+  .check:hover{background:var(--ink-800)}
+  .check.done span{color:var(--dim);text-decoration:line-through}
+
+  .stage-item{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:none;border:none;
+    color:var(--muted);font:inherit;font-size:13px;padding:7px 10px;border-radius:8px;cursor:pointer}
+  .stage-item:hover{background:var(--ink-850);color:var(--text)}
+  .stage-item.active{background:var(--ink-800);color:var(--text);font-weight:500}
+  .stage-num{display:grid;place-items:center;width:22px;height:22px;border-radius:99px;border:1px solid var(--ink-600);
+    font-size:10px;color:var(--dim);flex-shrink:0}
+  .stage-num.done{border-color:rgba(52,211,153,.5);background:rgba(52,211,153,.18);color:#6ee7b7}
+  .stage-num.prog{border-color:rgba(251,191,36,.5);background:rgba(251,191,36,.14);color:#fcd34d}
+  .stage-num.cur{border-color:rgba(167,139,250,.6);background:rgba(167,139,250,.15);color:var(--accent-soft)}
+
+  .tabs{display:flex;gap:2px;border-bottom:1px solid var(--ink-800);margin-bottom:22px;flex-wrap:wrap}
+  .tabs a{padding:8px 14px;font-size:13px;color:var(--muted);border-bottom:2px solid transparent}
+  .tabs a:hover{color:var(--text)}
+  .tabs a.active{color:var(--text);font-weight:500;border-bottom-color:var(--accent)}
+
+  .guide{border-left:2px solid;padding:14px}
+  .prompt{display:flex;gap:8px;background:var(--ink-900);border-radius:9px;padding:8px 12px;font-size:13px;color:#cbd2dd}
+  .prompt b{color:var(--accent);font-weight:400}
+
+  .tl{display:flex;border:1px solid var(--ink-700);border-radius:10px;overflow:hidden}
+  .tl button{position:relative;border:none;border-right:1px solid var(--ink-900);padding:10px 8px;text-align:left;
+    cursor:pointer;color:rgba(255,255,255,.95);font:inherit;min-width:46px}
+  .tl button:last-child{border-right:none}
+  .tl button.sel{outline:2px solid rgba(255,255,255,.7);outline-offset:-2px}
+  .tl b{display:block;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tl i{font-style:normal;font-size:10px;color:rgba(255,255,255,.7)}
+  .e1{background:var(--ink-600)}.e2{background:#0369a1}.e3{background:#059669}.e4{background:#f59e0b}.e5{background:#f43f5e}
+
+  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ink-800);
+    border:1px solid var(--ink-600);border-radius:10px;padding:10px 18px;font-size:13px;z-index:50;
+    box-shadow:0 10px 30px rgba(0,0,0,.5);animation:up .2s}
+  @keyframes up{from{opacity:0;transform:translate(-50%,8px)}to{opacity:1;transform:translate(-50%,0)}}
+  .notice{border-left:2px solid rgba(251,191,36,.45);background:rgba(251,191,36,.05);border-radius:10px;
+    padding:12px 14px;font-size:13px;color:#fde68a}
+  ol.steps,ul.vars{margin:4px 0 0;padding-left:18px}
+  ol.steps li,ul.vars li{margin:3px 0;font-size:13px;color:#cbd2dd}
+  ul.vars li{color:var(--muted)}
+  .hero{background:linear-gradient(135deg,var(--ink-850),var(--ink-900));border-radius:12px;border:1px solid var(--ink-700);padding:30px}
+  .two-col{display:grid;grid-template-columns:250px 1fr;gap:22px}
+  @media(max-width:920px){.two-col{grid-template-columns:1fr}}
+  .opt-card{display:flex;flex-direction:column;padding:15px}
+  .decision{background:var(--ink-900);border-radius:9px;padding:9px 12px;font-size:13px;color:#cbd2dd;display:flex;gap:8px;align-items:flex-start}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+"use strict";
+/* ============================== SEED DATA ============================== */
+const DATA = {"SUBSTYLES":[{"id":"boom-bap","name":"Boom Bap","blurb":"Dusty, sample-driven, hard-swung drums. Classic 90s head-nod.","bpmRange":[82,95],"grooveFeel":"Heavy swing, slightly behind the beat, human timing.","drums":"Punchy kick, cracking snare on 2 & 4, swung 16th hats, vinyl dust.","bass":"Walking or simple root-driven upright/sub bass locked to the kick.","harmony":"Chopped soul/jazz samples, minor 7th & 9th colors, filtered loops.","effects":"Saturation, bitcrush, vinyl sim, tape, light room reverb.","arrangement":"Loop-based, 4/8/16-bar sections, scratch hooks, drum-only breaks.","deviceSuggestions":{"mpc":"Chop the sample, build the swing, arrange sections, master clock.","rytm":"Layer an acoustic-style kick/snare under the sample drums; add ghost snares.","a4":"Add a sub-bass reinforcement or a filtered Rhodes-style stab."},"defaultSwing":58},{"id":"trap","name":"Trap","blurb":"Booming 808s, rolling hats, triplet feel, cinematic space.","bpmRange":[130,160],"grooveFeel":"Half-time feel; often written/felt at half the BPM.","drums":"Tuned 808 kick, snappy clap/snare on 3, fast hat rolls & triplets.","bass":"Pitched 808 glides following the key; long sustained sub notes.","harmony":"Dark minor melodies, bells, plucks, sparse eerie pads.","effects":"Long reverb tails, pitch glides, stutter edits, distortion on 808.","arrangement":"Intro, hook-first structures, beat switches, hat-roll build-ups.","deviceSuggestions":{"mpc":"Program hat rolls and ratchets, arrange beat switches, master clock.","rytm":"Design the snappy clap/snare and hi-hat texture; performance ratchets.","a4":"Build the pitched 808/sub-bass with glide; dark bell/pluck leads."},"defaultSwing":51},{"id":"lofi","name":"Lo-Fi Hip-Hop","blurb":"Warm, hazy, mellow. Imperfect timing and cozy texture.","bpmRange":[70,90],"grooveFeel":"Loose swing, intentional timing drift, relaxed pocket.","drums":"Soft dusty kick, brushed snare, quiet hats, lots of swing & wobble.","bass":"Round, soft upright/electric bass, simple and warm.","harmony":"Jazzy 7th/9th chords, detuned Rhodes, vinyl crackle, mellow keys.","effects":"Tape wow/flutter, vinyl noise, low-pass filtering, bit reduction.","arrangement":"Short loops, minimal changes, ambient intros, found-sound interludes.","deviceSuggestions":{"mpc":"Add timing humanization, vinyl sim, low-pass; keep loops simple.","rytm":"Soften drums with low velocities, add brush/rim textures, detune.","a4":"Detuned Rhodes/keys, soft analog bass, slow filter movement."},"defaultSwing":60},{"id":"experimental","name":"Experimental Hip-Hop","blurb":"Abstract, glitchy, rule-breaking. Texture over convention.","bpmRange":[60,110],"grooveFeel":"Off-grid, polymetric, unstable or shifting groove.","drums":"Broken/glitched patterns, odd time, granular hits, found percussion.","bass":"Distorted, modulated, or atonal sub movement.","harmony":"Dissonant clusters, microtonal bends, sampled noise, reversed tones.","effects":"Granular, bitcrush, extreme modulation, resampling, feedback.","arrangement":"Non-repeating, collage-like, abrupt cuts, evolving textures.","deviceSuggestions":{"mpc":"Resample everything, chop chaotically, automate plugin params.","rytm":"Heavy parameter locks, retrigs, sample mangling on the drum voices.","a4":"Aggressive LFO/env modulation, FM-ish tones, atonal sweeps."},"defaultSwing":50},{"id":"dark-cinematic","name":"Dark Cinematic","blurb":"Moody, filmic, tense. Wide space and ominous tone.","bpmRange":[75,100],"grooveFeel":"Patient, deliberate, often half-time and spacious.","drums":"Impactful kicks, reverbed snares, sparse but huge hits.","bass":"Deep sustained sub, slow swells, menacing low drones.","harmony":"Minor strings/choir samples, dissonant pads, single-note motifs.","effects":"Huge reverbs, risers, sub drops, distortion, reverse swells.","arrangement":"Tension/release, long builds, dynamic drops, score-like dynamics.","deviceSuggestions":{"mpc":"Arrange dynamic builds, automate filters/reverb sends, master clock.","rytm":"Cinematic impact hits, reverse cymbals, deep toms, sparse placement.","a4":"Drones, slow pad swells, dark single-note motifs, sub reinforcement."},"defaultSwing":52},{"id":"west-coast","name":"West Coast","blurb":"G-funk lean: bouncy, melodic synth leads, smooth low end.","bpmRange":[90,105],"grooveFeel":"Laid-back bounce, slight swing, confident pocket.","drums":"Tight punchy kick/snare, clean hats, occasional talkbox-era claps.","bass":"Smooth synth bass, melodic and groovy, follows the chords.","harmony":"High portamento lead synths, warm minor chords, funky stabs.","effects":"Portamento/glide, light chorus, smooth filtering, clean delay.","arrangement":"Verse/hook with strong melodic hooks, breakdowns, vocal space.","deviceSuggestions":{"mpc":"Sequence the bounce, arrange hooks, keep drums tight, master clock.","rytm":"Tight analog kick/snare, crisp hats, clean and punchy.","a4":"Signature whiny portamento lead + smooth synth bass; funky stabs."},"defaultSwing":55},{"id":"east-coast","name":"East Coast","blurb":"Gritty, lyrical, sample-forward, hard drums and dark loops.","bpmRange":[85,95],"grooveFeel":"Hard swing, aggressive pocket, head-nod authority.","drums":"Hard-hitting kick/snare, tight swung hats, dusty breaks.","bass":"Dark sub locked to kick, sometimes sampled bassline.","harmony":"Dark jazz/soul chops, minor & diminished colors, eerie loops.","effects":"Saturation, filtering, vinyl sim, tight delay throws.","arrangement":"Loop-driven verses, scratch hooks, drum breaks, hard intros.","deviceSuggestions":{"mpc":"Chop dark loops, hard swing, arrange verses + breaks, master clock.","rytm":"Reinforce the break with punchy analog drums + ghost notes.","a4":"Sub reinforcement, occasional dark stab or filtered key."},"defaultSwing":57},{"id":"southern-bounce","name":"Southern Bounce","blurb":"Energetic, chant-friendly, syncopated, club-ready.","bpmRange":[95,145],"grooveFeel":"Bouncy syncopation, call-and-response energy.","drums":"Snappy claps, syncopated kicks, lively hats, hand-clap layers.","bass":"Punchy synth/808 bass with bounce, syncopated rhythm.","harmony":"Catchy simple riffs, organ/brass stabs, chantable motifs.","effects":"Filter sweeps, claps with verb, vocal chop fx, risers.","arrangement":"Chant hooks, call-and-response, energetic drops, breakdowns.","deviceSuggestions":{"mpc":"Sequence the bounce + chant chops, arrange drops, master clock.","rytm":"Layered claps, syncopated kick programming, lively hat performance.","a4":"Punchy bass with bounce, organ/brass-style stabs, catchy riffs."},"defaultSwing":54},{"id":"grimy-underground","name":"Grimy Underground","blurb":"Raw, lo-fi, aggressive, intentionally rough and dark.","bpmRange":[80,95],"grooveFeel":"Hard, slightly sloppy on purpose, raw energy.","drums":"Overdriven kick/snare, crunchy hats, distorted breaks.","bass":"Distorted sub, gnarly and forward in the mix.","harmony":"Detuned dark samples, horror-movie motifs, dissonance.","effects":"Heavy distortion, bitcrush, aggressive filtering, noise.","arrangement":"Loop-heavy, abrupt, raw intros, minimal polish.","deviceSuggestions":{"mpc":"Resample to degrade, overdrive the bus, hard chops, master clock.","rytm":"Push the analog drive, distort the drums, gritty parameter locks.","a4":"Distorted sub, detuned dark motifs, overdriven filter resonance."},"defaultSwing":56},{"id":"soul-sample","name":"Soul Sample-Based","blurb":"Emotive chopped soul/gospel, pitched vocals, warm and rich.","bpmRange":[85,100],"grooveFeel":"Warm swing, soulful pocket, head-nod groove.","drums":"Warm punchy drums supporting the sample, tasteful swing.","bass":"Fingered/upright-style bass following the sample chords.","harmony":"Chopped soul vocals & instrumentation, lush extended chords.","effects":"Pitch shifting, time-stretch, filtering, tape warmth, sidechain.","arrangement":"Sample flips, vocal chop hooks, filtered intros, verse drops.","deviceSuggestions":{"mpc":"Chop & pitch the soul sample, time-stretch, arrange, master clock.","rytm":"Warm supportive drums tuned to the sample's key feel.","a4":"Bass that follows the sample harmony; subtle pad to glue chops."},"defaultSwing":57},{"id":"minimalist-drum-machine","name":"Minimalist Drum-Machine","blurb":"Sparse, hardware-purist, groove-and-space focused.","bpmRange":[85,110],"grooveFeel":"Tight machine groove with deliberate space and dynamics.","drums":"Pure drum-machine voices, sparse arrangement, strong groove.","bass":"Single analog bass line, repetitive and hypnotic.","harmony":"One or two synth elements, motif-driven, lots of space.","effects":"Subtle delay, light reverb, analog character, tasteful filtering.","arrangement":"Subtractive — mute/unmute elements, long evolving sections.","deviceSuggestions":{"mpc":"Arrange via mutes, capture performance, minimal layering, master clock.","rytm":"The star: craft every analog drum voice, perform mutes & p-locks.","a4":"One hypnotic bass + one motif; slow parameter evolution."},"defaultSwing":53}],"STAGES":[{"id":"setup","name":"Project Setup","objective":"Define the creative target and prepare the rig so the session flows. Lock identity before sound.","guidance":{"mpc":"Create a new project/sequence. Confirm MPC is master clock and sending MIDI clock + transport. Set sample rate and track template.","rytm":"Power on, set CLOCK + TRANSPORT receive, load an empty or starter kit. Confirm it follows MPC start/stop.","a4":"Set CLOCK + TRANSPORT receive, pick a starting sound bank, confirm it locks to MPC tempo."},"creativePrompts":["What feeling should this track give the listener in 5 seconds?","Name one reference track and one thing you want to steal from it.","Decide: sample-based or fully synthesized foundation?"],"relatedCategories":["arrangement"],"checklistTemplate":[{"label":"Project named and saved"},{"label":"MPC confirmed as master clock"},{"label":"Rytm receiving clock + transport"},{"label":"A4 receiving clock + transport"},{"label":"Creative target / mood defined"}]},{"id":"tempo-groove","name":"Tempo, Swing & Groove","objective":"Set the rhythmic DNA — BPM, swing amount, and the pocket everything else will sit in.","guidance":{"mpc":"Set BPM and global swing/timing-correct value. Dial the master groove; this propagates feel to recorded parts.","rytm":"Match feel: set per-track micro-timing/swing nudges. Decide if Rytm follows MPC swing or adds its own.","a4":"Confirm tempo lock. Set note lengths and any per-step micro-timing for bass/melody feel."},"creativePrompts":["Push or pull the hats off-grid for a human pocket.","Try the same beat at half-time feel for a trap/cinematic vibe.","Decide how much swing: tight (51) vs. dusty (58–60)."],"relatedCategories":["drums","arrangement"],"checklistTemplate":[{"label":"BPM chosen"},{"label":"Swing / groove amount set"},{"label":"Half-time vs. straight feel decided"},{"label":"Micro-timing pocket auditioned"}]},{"id":"reference","name":"Reference Track / Style Target","objective":"Anchor the production to a sonic target so every decision has a reference point.","guidance":{"mpc":"Drop reference audio onto a muted track for A/B. Note its arrangement and drop points.","rytm":"Identify the reference's drum character (punch, tuning, space) to aim your kit design.","a4":"Identify the reference's bass and lead tones to guide your synth design."},"creativePrompts":["List 3 sonic traits to match and 1 thing to do differently.","Map the reference's arrangement: where does it drop?","Match the reference's low-end weight, not just its melody."],"relatedCategories":["arrangement","mixprep"],"checklistTemplate":[{"label":"Reference track(s) chosen"},{"label":"Key/mood traits noted"},{"label":"Arrangement of reference mapped"},{"label":"1 intentional difference defined"}]},{"id":"drums","name":"Drum Foundation","objective":"Build the rhythmic backbone — the groove that carries the whole track.","guidance":{"mpc":"Sequence the master drum pattern and swing. Decide which hits live on MPC samples vs. Rytm.","rytm":"Design the analog kick/snare/clap and hat texture. Add ghost notes and parameter locks for life.","a4":"Usually silent here, but consider a percussive analog blip or noise hit if it fits."},"creativePrompts":["Start with kick + snare only; earn every added element.","Layer a sampled break (MPC) under an analog kick (Rytm).","Add swung 16th hats with velocity variation for groove."],"relatedCategories":["drums","automation"],"checklistTemplate":[{"label":"Core kick + snare locked"},{"label":"Hi-hat / percussion texture added"},{"label":"Swing & velocity feel dialed"},{"label":"Ghost notes / fills sketched"},{"label":"Drum-only loop sounds good on its own"}]},{"id":"bass","name":"Bassline","objective":"Lock the low end to the drums and define the harmonic floor of the track.","guidance":{"mpc":"Record the A4 bass into an MPC track/arrangement, or sequence A4 via MIDI. Watch kick/bass relationship.","rytm":"Keep kick tuning out of the way of the bass note; consider sidechain-style ducking via volume p-locks.","a4":"Design the sub/synth bass. Set glide for 808-style slides; use filter envelope for movement."},"creativePrompts":["Lock bass rhythm to the kick, then add one syncopated note.","Two-note minor bassline with filter-envelope movement (A4).","Try an 808 glide between root and fifth for trap motion."],"relatedCategories":["bass","automation"],"checklistTemplate":[{"label":"Bass note/key chosen"},{"label":"Bass rhythm locked to kick"},{"label":"Tone / filter movement dialed"},{"label":"Kick vs. bass low-end clash checked"}]},{"id":"harmony","name":"Sample or Harmonic Foundation","objective":"Establish the chords/sample that set the mood and key of the track.","guidance":{"mpc":"Chop and pitch the sample; build the loop. Or sequence A4 chords. Set the key the track lives in.","rytm":"Mostly silent; could add a tuned tonal percussion hit to reinforce a chord.","a4":"Play chord stabs or pads. Use the analog filter and chorus for warmth; detune for character."},"creativePrompts":["Chop a soul sample and re-pitch chops into a new progression.","Build a 4-chord minor loop on A4 with slow filter swells.","Filter the sample in the intro, open it up at the drop."],"relatedCategories":["chords","samples"],"checklistTemplate":[{"label":"Key / scale confirmed"},{"label":"Sample chopped OR chords programmed"},{"label":"Harmonic loop sits with drums + bass"},{"label":"Intro vs. drop harmonic contrast planned"}]},{"id":"hooks","name":"Melodic Hooks","objective":"Create the memorable lead/motif that defines the song's identity.","guidance":{"mpc":"Capture the A4 lead into arrangement sections. Chop a vocal/instrument sample into a hook if desired.","rytm":"Optional tonal percussion accent to answer the hook.","a4":"Design the signature lead — portamento for West Coast, dark bells for trap, simple motif for lo-fi."},"creativePrompts":["Write a 2-bar motif; the hook is a variation of it.","Contrast a chopped-sample hook (MPC) with an A4 counter-melody.","Leave space — the catchiest hooks breathe."],"relatedCategories":["melody","samples"],"checklistTemplate":[{"label":"Main hook/motif written"},{"label":"Hook contrasts the verse"},{"label":"Counter-melody or call-response considered"},{"label":"Hook is memorable a cappella in your head"}]},{"id":"texture","name":"Texture, Ear Candy & Movement","objective":"Add the details that make the beat feel alive and three-dimensional.","guidance":{"mpc":"Add foley, vinyl crackle, reversed chops, risers and one-shot ear candy between phrases.","rytm":"Use parameter locks for evolving hat tone, noise sweeps, and percussive ear candy.","a4":"Add pads, drones, and slow LFO textures in the background for depth."},"creativePrompts":["Add one quiet element that only appears every 4 bars.","Reverse a chord tail into the downbeat as a swell.","Pan ear candy wide; keep the core mono and centered."],"relatedCategories":["texture","samples"],"checklistTemplate":[{"label":"Background texture/pad added"},{"label":"1–2 pieces of ear candy placed"},{"label":"Transitional swell/riser sketched"},{"label":"Stereo field feels wide but balanced"}]},{"id":"effects","name":"Effects & Sound Design","objective":"Shape tone and space — make every element sit and feel intentional.","guidance":{"mpc":"Use MPC effects/sends for cohesive reverb/delay; resample heavily processed elements to commit.","rytm":"Dial analog drive, the analog/digital delay & reverb, and per-track filtering.","a4":"Use the multimode filter, overdrive, chorus, and FX track for movement and width."},"creativePrompts":["Pick one reverb space for the whole beat to glue it together.","Delay-throw the snare or a vocal chop on the last bar of a phrase.","Resample a distorted bus back in to commit the tone."],"relatedCategories":["effects","texture"],"checklistTemplate":[{"label":"Cohesive reverb space chosen"},{"label":"Delay throws / movement added"},{"label":"Saturation/distortion decisions made"},{"label":"Key elements committed (resampled) if needed"}]},{"id":"arrangement","name":"Song Arrangement","objective":"Turn the loop into a song — intro, verse, hook, bridge, drop, outro.","guidance":{"mpc":"This is the MPC's job: arrange sections, automate mutes, place drops and breaks into the song mode.","rytm":"Create pattern variations (A/B/C) for verse/hook/fill that the arrangement can call.","a4":"Create pattern variations for verse/hook so harmony evolves across sections."},"creativePrompts":["Drums + bass only for the verse; add chords/lead in the hook.","Drop the drums for 2 bars before the final hook.","Use an 8-bar intro that strips back to a single element."],"relatedCategories":["arrangement","transition"],"checklistTemplate":[{"label":"Section map built (intro→outro)"},{"label":"Section lengths set per substyle"},{"label":"Energy contrast between sections"},{"label":"Pattern variations created on Elektrons"}]},{"id":"automation","name":"Performance Automation & Live Variation","objective":"Inject human performance — mutes, fills, and parameter moves over time.","guidance":{"mpc":"Record live track mutes and parameter automation into the arrangement. Capture the performance.","rytm":"Perform fills, retrigs, and performance-macro moves (snare delay throws, kick decay) live.","a4":"Perform filter sweeps, modulate the lead, and automate the FX track for movement."},"creativePrompts":["Record a 16-bar live mute performance and keep the best take.","Automate a slow filter open across the whole verse.","Use Rytm performance macros for transition fills."],"relatedCategories":["automation","transition"],"checklistTemplate":[{"label":"Live mute performance captured"},{"label":"At least one evolving automation lane"},{"label":"Fills/throws performed at transitions"},{"label":"Best performance take saved"}]},{"id":"transition","name":"Transition Design","objective":"Make section changes feel inevitable with builds, drops, and fills.","guidance":{"mpc":"Place risers, downlifters, reversed swells, and filter automation at section boundaries.","rytm":"Program hat-roll build-ups, snare rushes, and impact hits into the bar before a change.","a4":"Use a rising pad/noise sweep or pitch-rise into the drop; cut to silence for impact."},"creativePrompts":["Snare roll + riser into every hook.","Silence the bar before the drop, then hit hard.","Filter-sweep the whole mix up into the chorus."],"relatedCategories":["transition","effects"],"checklistTemplate":[{"label":"Build-up into hook designed"},{"label":"Drop / impact moment created"},{"label":"At least one reverse/riser swell placed"},{"label":"Every section change feels intentional"}]},{"id":"mixprep","name":"Mix Prep","objective":"Get a clean, balanced rough mix ready for mixing/mastering or release.","guidance":{"mpc":"Balance track levels, set sends, gain-stage the master, and prep individual outs for stems.","rytm":"Balance the drum bus internally; decide stereo vs. individual outs for the mix engineer.","a4":"Balance bass vs. melody levels; tame resonance; confirm tuning across the song."},"creativePrompts":["Mix at low volume; if the balance works quiet, it works loud.","Carve space: high-pass non-bass elements, sidechain the pad to the kick.","Reference your A/B track for tonal balance."],"relatedCategories":["mixprep","effects"],"checklistTemplate":[{"label":"Rough level balance complete"},{"label":"Low-end (kick vs. bass) sits cleanly"},{"label":"High-pass / EQ space carved"},{"label":"Master gain-staged with headroom"},{"label":"Reference A/B checked"}]},{"id":"export","name":"Export / Stem Checklist","objective":"Bounce stems and/or a stereo mix with notes for future mix/master.","guidance":{"mpc":"Render stems per track/group or a stereo mixdown. Label clearly. Export at proper sample rate/bit depth.","rytm":"Record drum stems (full bus + individual outs if used) into the MPC for export.","a4":"Record bass/melody/texture stems into the MPC for export."},"creativePrompts":["Export stems dry where possible; keep FX-printed versions too.","Name stems consistently: 01_Kick, 02_Snare, 03_Bass...","Save a session recall sheet: BPM, key, kit, patch names."],"relatedCategories":["mixprep"],"checklistTemplate":[{"label":"Stems exported (drums/bass/harmony/melody/texture)"},{"label":"Stereo rough mix exported"},{"label":"Files named and organized"},{"label":"Session recall notes saved"}]},{"id":"review","name":"Final Review","objective":"Step back, evaluate the whole, and decide what (if anything) to fix.","guidance":{"mpc":"Play the full arrangement start-to-finish; note any weak sections or dead air.","rytm":"Check that fills/variation keep the drums from feeling static.","a4":"Check tuning and that melodic parts serve the song, not ego."},"creativePrompts":["Listen on phone/laptop speakers — does it translate?","Cut one element you love but don't need.","Does every 8 bars give the listener something new?"],"relatedCategories":["arrangement","mixprep"],"checklistTemplate":[{"label":"Full playthrough completed"},{"label":"Arrangement holds attention throughout"},{"label":"Translates on multiple speakers"},{"label":"Future mix/master notes written"},{"label":"Marked as done — track complete!"}]}],"COMPLETION_CHECKLIST":["BPM selected","Key / mood selected","Drum foundation complete","Bassline complete","Hook idea complete","Verse variation complete","Transitions added","Arrangement complete","Effects decisions made","Performance automation captured","Rough balance complete","Stems or final stereo export prepared","Notes for future mix/master saved"],"CATEGORY_LABELS":{"drums":"Drum Patterns","bass":"Basslines","chords":"Chords / Harmony","melody":"Leads / Hooks","samples":"Samples / Chops","texture":"Textures / Ear Candy","effects":"Effects","transition":"Transitions","arrangement":"Arrangement","automation":"Performance Automation","mixprep":"Mix Prep"},"CREATIVE_OPTIONS":[{"id":"drums-001","category":"drums","title":"Sparse kick/snare with off-grid hat nudges","description":"A minimal kick + snare backbone with hi-hats micro-nudged off the grid for a human pocket.","recommendedDevice":"rytm","difficulty":"beginner","styleFit":"all","whenToUse":"When you want groove and space rather than busy programming.","implementationSteps":["Program kick on 1 and snare on 2 & 4 on the Rytm","Add closed hats on 8ths","Micro-time a few hats slightly late","Sequence the master pattern from the MPC and mute/unmute Rytm tracks for variation"],"variationIdeas":["Move a single hat early for a rushed feel","Drop the kick on beat 3 occasionally","Swap closed hats for open hats every 4th bar"]},{"id":"drums-002","category":"drums","title":"Sampled break under analog kick","description":"Layer a chopped vinyl break (MPC) with a punchy analog kick (Rytm) for weight + character.","recommendedDevice":"mpc","difficulty":"intermediate","styleFit":["boom-bap","east-coast","soul-sample","grimy-underground","lofi"],"whenToUse":"When the sampled drums lack low-end punch on their own.","implementationSteps":["Chop a break on the MPC and lay it across pads","High-pass the break slightly","Add a Rytm analog kick on the downbeats to reinforce","Tune the Rytm kick to the break"],"variationIdeas":["Replace just the break's snare with a Rytm clap","Sidechain the break to the Rytm kick","Reverse the break's last 16th into the bar"]},{"id":"drums-003","category":"drums","title":"Trap hat rolls & triplet ratchets","description":"Fast 32nd/triplet hi-hat rolls and ratchets programmed for energy and motion.","recommendedDevice":"mpc","difficulty":"intermediate","styleFit":["trap","southern-bounce","dark-cinematic"],"whenToUse":"When the beat needs forward momentum and trap energy.","implementationSteps":["Program steady hats, then add note-repeat rolls on the MPC","Vary roll speed (1/16 → 1/32 → 1/48)","Drop velocity on roll tails","Use Rytm retrig as an alternate ratchet source"],"variationIdeas":["Pan hat rolls across the stereo field","Pitch the hats up during a roll","Leave a 1-bar gap with no hats for contrast"]},{"id":"drums-004","category":"drums","title":"Boom-bap dusty swing groove","description":"Hard-swung 16ths with vinyl dust and slightly loose timing for that 90s head-nod.","recommendedDevice":"mpc","difficulty":"beginner","styleFit":["boom-bap","east-coast","soul-sample","lofi"],"whenToUse":"When you want classic boom-bap feel.","implementationSteps":["Set MPC swing to ~56–60%","Program kick/snare with intentionally imperfect timing","Add vinyl crackle layer","Vary snare velocity for a played feel"],"variationIdeas":["Add a ghost snare before the backbeat","Flam the snare occasionally","Drop swing to 54% for a tighter take"]},{"id":"drums-005","category":"drums","title":"Analog clap + snare layering","description":"Stack a Rytm analog clap with a snare for a fatter, wider backbeat.","recommendedDevice":"rytm","difficulty":"intermediate","styleFit":"all","whenToUse":"When the snare feels thin or narrow.","implementationSteps":["Design a clap on one Rytm track","Design a snare on another","Trigger both on 2 & 4","Pan the clap slightly wide, keep snare centered"],"variationIdeas":["Add short reverb to only the clap","Delay-throw the clap on phrase ends","Pitch the snare down for darkness"]},{"id":"drums-006","category":"drums","title":"Ghost-note hi-hat funk","description":"Low-velocity ghost hats and snares filling the gaps for a funky, breathing groove.","recommendedDevice":"rytm","difficulty":"advanced","styleFit":["west-coast","southern-bounce","soul-sample","minimalist-drum-machine"],"whenToUse":"When a static groove needs life and bounce.","implementationSteps":["Program main hats at full velocity","Add ghost hats at ~30% velocity on off-16ths","Use velocity-locked p-locks on the Rytm","Add ghost snares before the backbeat"],"variationIdeas":["Open a ghost hat into the backbeat","Randomize ghost velocities","Mute ghosts in the hook for contrast"]},{"id":"drums-007","category":"drums","title":"808-driven minimal kit","description":"Tuned 808-style kick doing double duty as kick + bass, with snappy clap and sparse hats.","recommendedDevice":"rytm","difficulty":"beginner","styleFit":["trap","southern-bounce","dark-cinematic"],"whenToUse":"When you want modern trap minimalism.","implementationSteps":["Tune the Rytm kick low and let it ring","Add a snappy clap on beat 3","Keep hats sparse with occasional rolls","Let the kick carry the sub"],"variationIdeas":["Pitch-glide the kick between notes","Distort the kick for grit","Add a rimshot accent on the and-of-3"]},{"id":"drums-008","category":"drums","title":"Half-time cinematic hits","description":"Massive, slow, reverbed kick and snare placed sparsely for a filmic half-time feel.","recommendedDevice":"rytm","difficulty":"beginner","styleFit":["dark-cinematic","trap","experimental"],"whenToUse":"When you want weight, drama, and space.","implementationSteps":["Place kick on 1, snare on 3 (half-time)","Add long reverb to the snare","Tune drums low and heavy","Leave lots of empty space"],"variationIdeas":["Add a sub-drop under the kick","Reverse-reverb into the snare","Double the snare an octave down"]},{"id":"drums-009","category":"drums","title":"Percussion-layer world textures","description":"Add congas, shakers, rims, or found percussion to enrich the groove beyond the kit.","recommendedDevice":"mpc","difficulty":"intermediate","styleFit":["experimental","southern-bounce","west-coast","dark-cinematic"],"whenToUse":"When the drums feel one-dimensional.","implementationSteps":["Sample or load percussion one-shots on the MPC","Program a syncopated shaker/conga line","Pan percussion off-center","Keep levels supportive, not dominant"],"variationIdeas":["Run percussion through a filter LFO","Use the Rytm for a tuned tom run","Swap percussion every 8 bars"]},{"id":"drums-010","category":"drums","title":"Glitch / broken beat programming","description":"Stutter edits, dropped steps, and broken patterns for an unstable, abstract groove.","recommendedDevice":"mpc","difficulty":"advanced","styleFit":["experimental","grimy-underground","lofi"],"whenToUse":"When you want experimental, non-grid drums.","implementationSteps":["Program a normal beat, then delete/displace random steps","Add stutter retrigs on the MPC","Resample and re-chop the drum loop","Glitch only specific bars for contrast"],"variationIdeas":["Bitcrush the broken section","Reverse a stuttered hit","Quantize-then-randomize for controlled chaos"]},{"id":"drums-011","category":"drums","title":"West Coast tight bounce kit","description":"Tight, punchy, clean kick/snare with crisp hats and a confident bounce.","recommendedDevice":"rytm","difficulty":"intermediate","styleFit":["west-coast","southern-bounce"],"whenToUse":"When you want clean G-funk-era drums.","implementationSteps":["Design a tight analog kick with short decay","Crisp snare, minimal reverb","Clean 8th/16th hats with light swing","Keep everything punchy and dry"],"variationIdeas":["Add a tambourine layer on the offbeats","Open hat on the and-of-4","Slightly swing the hats for bounce"]},{"id":"drums-012","category":"drums","title":"Lo-fi soft & wobbly drums","description":"Low-velocity, detuned, slightly unstable drums with brush and rim textures.","recommendedDevice":"rytm","difficulty":"beginner","styleFit":["lofi","soul-sample"],"whenToUse":"When you want cozy, imperfect lo-fi drums.","implementationSteps":["Lower overall velocities on the Rytm","Detune the kick/snare slightly","Add a rim or brush layer","Apply gentle wow/flutter via the MPC after recording"],"variationIdeas":["Randomize micro-timing for human drift","Filter the whole kit with a low-pass","Add a soft vinyl hiss bed"]},{"id":"drums-013","category":"drums","title":"Drum-machine mute performance","description":"Build a full pattern, then perform the arrangement by muting/unmuting Rytm tracks live.","recommendedDevice":"rytm","difficulty":"intermediate","styleFit":["minimalist-drum-machine","experimental","west-coast"],"whenToUse":"When the groove is the song and arrangement = subtraction.","implementationSteps":["Program a complete busy pattern on the Rytm","Mute most tracks to start","Unmute elements over time while recording into the MPC","Capture the live mute performance as audio"],"variationIdeas":["P-lock a filter on the kick during mutes","Bring in hats last for a build","Drop to kick-only before the hook"]},{"id":"drums-014","category":"drums","title":"Snare-on-3 modern bounce","description":"Backbeat on beat 3 only (half-time) for a spacious modern pocket.","recommendedDevice":"mpc","difficulty":"beginner","styleFit":["trap","southern-bounce","dark-cinematic"],"whenToUse":"When 2-and-4 feels too busy for the tempo.","implementationSteps":["Move the snare/clap to land on beat 3","Let the kick fill 1 and syncopated spots","Keep hats steady around it","Feel it at half the BPM"],"variationIdeas":["Add a ghost snare on the and-of-3","Layer a clap with the snare","Throw a delay on the snare into the next bar"]},{"id":"drums-015","category":"drums","title":"Polyrhythmic hat layering","description":"Overlay a 3-against-4 or 5-step hat pattern over a 4/4 kick for hypnotic motion.","recommendedDevice":"rytm","difficulty":"advanced","styleFit":["experimental","minimalist-drum-machine","dark-cinematic"],"whenToUse":"When you want subtle complexity and movement.","implementationSteps":["Set one Rytm track to a different step length (e.g. 3 or 5)","Let it cycle against the 16-step kit","Keep velocity low so it weaves","Record a long pass to capture the phasing"],"variationIdeas":["Pan the polyrhythmic hat","P-lock pitch changes across its steps","Add a second polymeter on percussion"]},{"id":"drums-016","category":"drums","title":"Trap-to-boom-bap beat switch","description":"Two contrasting drum feels in one track, switched at a key arrangement moment.","recommendedDevice":"mpc","difficulty":"advanced","styleFit":["trap","experimental","dark-cinematic"],"whenToUse":"When you want a dramatic 'beat switch' second half.","implementationSteps":["Build a trap pattern for section A","Build a boom-bap pattern for section B","Use MPC sequences/song mode to switch","Bridge the switch with a transition fill"],"variationIdeas":["Change BPM feel at the switch","Keep the same bass to glue the halves","Switch back for a final hook"]},{"id":"bass-017","category":"bass","title":"Two-note minor bass with filter envelope","description":"A simple root-fifth or root-flat7 bass with A4 filter-envelope movement for life.","recommendedDevice":"a4","difficulty":"beginner","styleFit":"all","whenToUse":"When you want a moving, vocal bass without complex notes.","implementationSteps":["Pick the root note on the A4","Add one supporting note (5th or b7)","Dial a filter envelope for per-note movement","Record the pattern into MPC verse/hook sections"],"variationIdeas":["Add glide between the two notes","Open the filter more in the hook","Octave-jump the second note"]},{"id":"bass-018","category":"bass","title":"808 glide bass following the key","description":"Pitched sub bass that glides between notes to match the melody, 808-style.","recommendedDevice":"a4","difficulty":"intermediate","styleFit":["trap","southern-bounce","dark-cinematic"],"whenToUse":"When the track needs that modern sliding low end.","implementationSteps":["Tune the A4 to a sine-ish sub patch","Enable portamento/glide","Play root notes following the chord changes","Set note length so glides connect"],"variationIdeas":["Distort the 808 for grit","Add a click transient layer from the Rytm","Pitch-bend a fill at the end of the phrase"]},{"id":"bass-019","category":"bass","title":"Walking sample-style bass","description":"A walking bassline that moves between chord tones for a jazzy, sampled feel.","recommendedDevice":"a4","difficulty":"advanced","styleFit":["boom-bap","east-coast","soul-sample","west-coast"],"whenToUse":"When you want bass that implies the harmony, jazz-style.","implementationSteps":["Map the chord roots","Connect them with passing notes on the A4","Keep it locked to the kick rhythmically","Use a warm, slightly muted tone"],"variationIdeas":["Swing the bass notes with the drums","Add a chromatic approach note","Drop to roots-only in the hook for impact"]},{"id":"bass-020","category":"bass","title":"Sub reinforcement under sample","description":"A clean sine sub doubling the root of your sample/chords to add weight.","recommendedDevice":"a4","difficulty":"beginner","styleFit":"all","whenToUse":"When a sampled loop lacks low-end on club systems.","implementationSteps":["Identify the root note of the loop","Play a clean sub on the A4 matching it","High-pass the sample so the sub owns the lows","Keep it simple — one note per chord"],"variationIdeas":["Follow chord changes with the sub","Sidechain the sub to the kick","Add subtle saturation for presence"]},{"id":"bass-021","category":"bass","title":"Syncopated funk bass","description":"A bouncy, syncopated bass with ghost notes and slides for funk energy.","recommendedDevice":"a4","difficulty":"advanced","styleFit":["west-coast","southern-bounce","soul-sample"],"whenToUse":"When you want groove-forward, danceable bass.","implementationSteps":["Write a syncopated rhythm off the kick","Add muted ghost notes between hits","Use slides into accented notes","Keep the tone round and punchy"],"variationIdeas":["Add a octave pop on the accent","Mute-strum 16ths for a percussive feel","Simplify in the verse, bring funk in the hook"]},{"id":"bass-022","category":"bass","title":"Drone / sustained sub bed","description":"A long, sustained sub drone that sits under everything for ominous weight.","recommendedDevice":"a4","difficulty":"beginner","styleFit":["dark-cinematic","experimental","minimalist-drum-machine"],"whenToUse":"When you want tension and a huge low foundation.","implementationSteps":["Hold a single low root on the A4","Add very slow filter movement","Layer subtle distortion or sub-octave","Let it ring through the section"],"variationIdeas":["Slowly detune for unease","Add an LFO wobble","Drop it out entirely for a 'floor falls away' moment"]},{"id":"bass-023","category":"bass","title":"Reese-style detuned bass","description":"Stacked detuned saws creating a thick, gritty, moving bass texture.","recommendedDevice":"a4","difficulty":"advanced","styleFit":["experimental","grimy-underground","dark-cinematic"],"whenToUse":"When you want an aggressive, modern, textured low end.","implementationSteps":["Stack/detune the A4 oscillators","Add overdrive","Sweep the filter for movement","High-pass slightly so the kick fits"],"variationIdeas":["Add slow LFO to the detune","Resample and re-pitch for new tones","Mono the lows, widen the highs"]},{"id":"bass-024","category":"bass","title":"Kick-locked one-note pulse","description":"A single repeated bass note locked tightly to the kick for hypnotic drive.","recommendedDevice":"a4","difficulty":"beginner","styleFit":["minimalist-drum-machine","trap","grimy-underground"],"whenToUse":"When less is more and you want pure groove.","implementationSteps":["Pick one root note","Trigger it exactly with the kick","Use a short, punchy envelope","Let repetition build hypnosis"],"variationIdeas":["Add an occasional octave jump","Filter-open across 8 bars","Drop every 4th hit for space"]},{"id":"bass-025","category":"bass","title":"Picked / fingered electric-bass tone","description":"A warm, plucky electric-bass-style tone with finger-style dynamics.","recommendedDevice":"a4","difficulty":"intermediate","styleFit":["lofi","soul-sample","boom-bap","west-coast"],"whenToUse":"When you want organic, musical bass for sample-based beats.","implementationSteps":["Design a plucky A4 patch with quick attack","Add slight finger-noise via velocity","Play a melodic line following the chords","Warm it with chorus and gentle saturation"],"variationIdeas":["Slide between two notes","Add a dead/ghost note for groove","Double an octave up softly in the hook"]},{"id":"bass-026","category":"bass","title":"Acid-style resonant bassline","description":"A squelchy, high-resonance bassline with accent and slide for movement.","recommendedDevice":"a4","difficulty":"advanced","styleFit":["experimental","minimalist-drum-machine","grimy-underground"],"whenToUse":"When you want a hypnotic, evolving 303-style line.","implementationSteps":["Write a 16-step line on the A4 sequencer","Crank filter resonance","Add slides and accents per step (p-locks)","Modulate cutoff over time"],"variationIdeas":["Automate resonance up across a build","Distort for extra bite","Alternate accent patterns each loop"]},{"id":"bass-027","category":"bass","title":"Half-time sub hits","description":"Sparse, long sub notes hitting on the downbeats for cinematic weight.","recommendedDevice":"a4","difficulty":"beginner","styleFit":["dark-cinematic","trap"],"whenToUse":"When the track is spacious and needs occasional massive low end.","implementationSteps":["Play long root notes on beats 1 (and 3)","Use a pure sub tone","Let each note fully sustain","Tune to the track's key"],"variationIdeas":["Add a slow pitch fall on release","Layer a sub-drop sample","Sidechain the pad to these hits"]},{"id":"bass-028","category":"bass","title":"Octave-bouncing bass","description":"Bass alternating between root and its octave for bouncy energy.","recommendedDevice":"a4","difficulty":"intermediate","styleFit":["west-coast","southern-bounce","minimalist-drum-machine"],"whenToUse":"When you want movement from one note.","implementationSteps":["Sequence root–octave–root–octave on the A4","Accent the low octave","Lock to the kick groove","Keep the tone punchy"],"variationIdeas":["Add swing to the octave bounce","Filter the high octave brighter","Throw in a fifth occasionally"]},{"id":"bass-029","category":"bass","title":"Distorted grime sub","description":"An overdriven, forward sub that growls and cuts through a raw mix.","recommendedDevice":"a4","difficulty":"intermediate","styleFit":["grimy-underground","experimental","dark-cinematic"],"whenToUse":"When you want aggressive, in-your-face low end.","implementationSteps":["Start with a sub patch on the A4","Push the overdrive hard","Shape with the filter to control mud","Mono and high-pass slightly"],"variationIdeas":["Add a bitcrush layer","Resample the distortion to commit it","Automate drive across sections"]},{"id":"bass-030","category":"bass","title":"Chord-tone arpeggiated bass","description":"An arpeggio outlining the chord in the bass register for melodic motion.","recommendedDevice":"a4","difficulty":"advanced","styleFit":["soul-sample","west-coast","experimental"],"whenToUse":"When you want the bass to carry harmony melodically.","implementationSteps":["Set the A4 arpeggiator to the chord","Keep it in the low register","Sync to tempo from the MPC","Tame the highs with a filter"],"variationIdeas":["Change arp direction per section","Add octave range in the hook","Gate it rhythmically against the kick"]},{"id":"bass-031","category":"bass","title":"Side-chained pumping sub","description":"A sub that ducks to the kick, creating a pumping, breathing low end.","recommendedDevice":"a4","difficulty":"intermediate","styleFit":["trap","southern-bounce","dark-cinematic","west-coast"],"whenToUse":"When kick and bass fight for the same space.","implementationSteps":["Use the A4's envelope/LFO or MPC sidechain to duck the sub","Trigger ducking from the kick","Set release to taste","Check the low end on a sub speaker"],"variationIdeas":["Pump the pad with the same trigger","Exaggerate for an EDM-leaning feel","Subtle duck for transparency"]},{"id":"chords-032","category":"chords","title":"Minor 7th / 9th lo-fi chords","description":"Lush extended minor chords (m7, m9) for that jazzy, emotional hip-hop color.","recommendedDevice":"a4","difficulty":"beginner","styleFit":["lofi","soul-sample","boom-bap","east-coast"],"whenToUse":"When you want warm, sophisticated harmony.","implementationSteps":["Build a minor 7th chord on the A4","Add the 9th for richness","Use a warm, detuned patch with chorus","Play 2–4 chords in a loop"],"variationIdeas":["Voice chords higher for a Rhodes feel","Add slow filter swells","Invert chords across the progression"]},{"id":"chords-033","category":"chords","title":"Four-chord minor loop with filter swells","description":"A repeating 4-chord minor progression with the filter slowly opening and closing.","recommendedDevice":"a4","difficulty":"beginner","styleFit":"all","whenToUse":"When you need an evergreen emotional backbone.","implementationSteps":["Pick 4 minor-key chords (i–VI–III–VII works)","Loop them every bar or two","Automate the A4 filter to breathe","Layer a sub on the roots"],"variationIdeas":["Add a passing diminished chord","Change one chord in the hook","Pulse the chords rhythmically"]},{"id":"chords-034","category":"chords","title":"Chopped soul-sample chords","description":"Re-pitch chops of a soul/gospel sample into a new chord progression on the MPC.","recommendedDevice":"mpc","difficulty":"intermediate","styleFit":["soul-sample","boom-bap","east-coast","lofi"],"whenToUse":"When you want authentic, complex sampled harmony.","implementationSteps":["Find a rich chord in a soul record","Chop it and spread across MPC pads","Re-pitch chops to build a progression","Filter and EQ to fit the mix"],"variationIdeas":["Reverse a chop for a swell","Layer two samples for thickness","Time-stretch a chop into a pad"]},{"id":"chords-035","category":"chords","title":"Dark cinematic minor pads","description":"Slow, ominous minor pads with dissonant tension for filmic mood.","recommendedDevice":"a4","difficulty":"intermediate","styleFit":["dark-cinematic","trap","experimental"],"whenToUse":"When you want tension and atmosphere over groove.","implementationSteps":["Build a dark minor chord on the A4","Add a slow attack for a pad","Introduce a dissonant tension note","Drench in reverb"],"variationIdeas":["Add a tritone for menace","Slowly detune for unease","Automate a swell into each section"]},{"id":"chords-036","category":"chords","title":"Stab-and-space comping","description":"Short rhythmic chord stabs with lots of space between them for groove.","recommendedDevice":"a4","difficulty":"intermediate","styleFit":["west-coast","southern-bounce","boom-bap"],"whenToUse":"When sustained chords clutter the mix.","implementationSteps":["Make a short, punchy A4 chord patch","Play stabs on syncopated offbeats","Leave silence between stabs","Add a touch of delay on the stab"],"variationIdeas":["Throw a stab into reverb on phrase ends","Alternate two voicings","Filter-down the stab in the verse"]},{"id":"chords-037","category":"chords","title":"Suspended / unresolved harmony","description":"Sus2/sus4 and unresolved voicings that float without a clear home.","recommendedDevice":"a4","difficulty":"advanced","styleFit":["experimental","dark-cinematic","lofi"],"whenToUse":"When you want a dreamy or uneasy, open feeling.","implementationSteps":["Replace the 3rd with a 2nd or 4th","Loop without resolving to a tonic","Use a soft, airy patch","Let chords overlap slightly"],"variationIdeas":["Resolve only at the hook","Add a pedal tone underneath","Pan a doubled voice wide"]},{"id":"chords-038","category":"chords","title":"Gospel-style passing chords","description":"Rich passing and chromatic chords connecting the main harmony, gospel-influenced.","recommendedDevice":"a4","difficulty":"advanced","styleFit":["soul-sample","west-coast","boom-bap"],"whenToUse":"When you want sophisticated, moving harmony.","implementationSteps":["Establish your main chords","Insert chromatic passing chords between them","Voice-lead smoothly (small movements)","Use a warm electric-piano patch"],"variationIdeas":["Add a walk-up into the hook chord","Borrow a chord from the parallel major","Drop to a single chord for contrast"]},{"id":"chords-039","category":"chords","title":"Detuned Rhodes electric-piano","description":"A warm, slightly detuned electric-piano sound for cozy, nostalgic chords.","recommendedDevice":"a4","difficulty":"beginner","styleFit":["lofi","soul-sample","boom-bap"],"whenToUse":"When you want that classic lo-fi keys vibe.","implementationSteps":["Design a Rhodes-like A4 patch","Add slight detune and chorus","Play soft, swung chords","Add vinyl/tape character via the MPC"],"variationIdeas":["Roll the chords (slight strum)","Add tremolo","Filter darker in the verse"]},{"id":"chords-040","category":"chords","title":"Single-note tonal motif (implied harmony)","description":"A single repeating melodic note/figure that implies the harmony without full chords.","recommendedDevice":"a4","difficulty":"beginner","styleFit":["minimalist-drum-machine","trap","dark-cinematic","experimental"],"whenToUse":"When full chords feel too busy or dense.","implementationSteps":["Pick one strong note in the key","Repeat it rhythmically on the A4","Let bass + melody imply the rest","Add space and reverb"],"variationIdeas":["Move the note every 4 bars","Add an octave answer","Pulse it with the hats"]},{"id":"chords-041","category":"chords","title":"Organ / brass stabs","description":"Punchy organ or brass-style chord stabs for energetic, chantable hooks.","recommendedDevice":"a4","difficulty":"intermediate","styleFit":["southern-bounce","west-coast","soul-sample"],"whenToUse":"When you want bold, danceable harmony.","implementationSteps":["Design a bright organ/brass A4 patch","Play short rhythmic stabs","Accent the hook with them","Add a bit of room reverb"],"variationIdeas":["Add a fall/doit on the last stab","Harmonize a counter stab","Filter-sweep them into the drop"]},{"id":"chords-042","category":"chords","title":"Wide pad bed under everything","description":"A soft, wide sustained pad that glues the whole track together subtly.","recommendedDevice":"a4","difficulty":"beginner","styleFit":["dark-cinematic","lofi","experimental"],"whenToUse":"When the mix feels disconnected or thin.","implementationSteps":["Build a soft, slow-attack A4 pad","Play the root + a chord tone","Keep the level low and supportive","Widen with chorus/stereo"],"variationIdeas":["Slowly evolve the filter over a section","Swell it up into the hook","Drop it in the breakdown for contrast"]},{"id":"chords-043","category":"chords","title":"Tritone / diminished tension chords","description":"Diminished and tritone voicings for unstable, menacing harmony.","recommendedDevice":"a4","difficulty":"advanced","styleFit":["dark-cinematic","experimental","grimy-underground"],"whenToUse":"When you want darkness and unresolved tension.","implementationSteps":["Build a diminished chord on the A4","Use it as a tense passing or main chord","Keep voicings tight and low-mid","Don't resolve it"],"variationIdeas":["Glide between two dim chords","Layer a dissonant high note","Use it only at transitions for shock"]},{"id":"chords-044","category":"chords","title":"Arpeggiated chord pattern","description":"Break a chord into a rhythmic arpeggio for motion instead of block chords.","recommendedDevice":"a4","difficulty":"intermediate","styleFit":["experimental","lofi","west-coast","minimalist-drum-machine"],"whenToUse":"When sustained chords feel static.","implementationSteps":["Set the A4 arp to your chord","Sync to MPC tempo","Choose an up/down/random pattern","Add subtle filter movement"],"variationIdeas":["Change arp rate in the hook","Add a second octave range","Gate the arp against the snare"]},{"id":"chords-045","category":"chords","title":"Two-chord hypnotic vamp","description":"Just two chords trading back and forth for a hypnotic, modern loop.","recommendedDevice":"a4","difficulty":"beginner","styleFit":["trap","minimalist-drum-machine","dark-cinematic","grimy-underground"],"whenToUse":"When you want simplicity and repetition to carry the track.","implementationSteps":["Pick two related minor chords","Alternate them every 1–2 bars","Use a simple, dark patch","Let the groove and melody do the work"],"variationIdeas":["Add a third chord only in the bridge","Filter one chord darker","Drop one chord out for tension"]},{"id":"chords-046","category":"chords","title":"Reversed chord swells","description":"Reverse the tail of a chord so it swells up into the downbeat.","recommendedDevice":"mpc","difficulty":"intermediate","styleFit":["lofi","dark-cinematic","experimental","soul-sample"],"whenToUse":"When you want smooth, atmospheric transitions into phrases.","implementationSteps":["Record a chord (A4 or sample)","Reverse the audio in the MPC","Time it to swell into beat 1","Add reverb for smoothness"],"variationIdeas":["Layer a forward chord on the hit","Pitch the reverse up over its length","Use only before the hook"]},{"id":"melody-047","category":"melody","title":"Two-bar motif you can vary","description":"A short, memorable 2-bar melodic idea that becomes the seed for the whole track.","recommendedDevice":"a4","difficulty":"beginner","styleFit":"all","whenToUse":"When you need a hook foundation that's easy to develop.","implementationSteps":["Write a simple 2-bar phrase on the A4","Make it singable","Loop it to test memorability","Capture into MPC hook section"],"variationIdeas":["Transpose it for the verse","Add a note in the repeat","Answer it with a second phrase"]},{"id":"melody-048","category":"melody","title":"West Coast portamento lead","description":"The signature whiny, gliding G-funk lead synth with heavy portamento.","recommendedDevice":"a4","difficulty":"intermediate","styleFit":["west-coast","southern-bounce"],"whenToUse":"When you want that classic West Coast hook.","implementationSteps":["Design a bright saw lead on the A4","Crank portamento/glide","Play a melodic, sliding line","Add light delay and a touch of chorus"],"variationIdeas":["Vibrato on long notes","Octave jump for the hook peak","Harmonize a second lead line"]},{"id":"melody-049","category":"melody","title":"Dark trap bell melody","description":"An eerie bell/pluck melody in a minor key for modern trap mood.","recommendedDevice":"a4","difficulty":"intermediate","styleFit":["trap","dark-cinematic"],"whenToUse":"When you want a haunting, catchy trap lead.","implementationSteps":["Design a bell/pluck patch on the A4","Write a sparse minor melody","Add long reverb/delay tails","Leave space between phrases"],"variationIdeas":["Pitch a phrase up an octave","Add a counter-pluck","Stutter-edit a phrase end"]},{"id":"melody-050","category":"melody","title":"Chopped vocal-sample hook","description":"Chop a vocal phrase and rearrange it into a catchy, rhythmic hook on the MPC.","recommendedDevice":"mpc","difficulty":"intermediate","styleFit":["soul-sample","southern-bounce","trap","experimental"],"whenToUse":"When you want a vocal hook without recording vocals.","implementationSteps":["Find a vocal phrase to sample","Chop it across MPC pads","Rearrange chops into a new melody/rhythm","Pitch and time-stretch to fit"],"variationIdeas":["Pitch the vocal up for an energetic feel","Add formant shift for character","Stutter a single syllable"]},{"id":"melody-051","category":"melody","title":"Call-and-response between MPC and A4","description":"A sampled/chopped phrase (MPC) answered by an analog counter-melody (A4).","recommendedDevice":"any","difficulty":"intermediate","styleFit":"all","whenToUse":"When you want conversational, engaging melody.","implementationSteps":["Place a chopped phrase on the MPC","Write an A4 answer in the gaps","Make the two trade every 2 bars","Pan them slightly apart"],"variationIdeas":["Make the A4 answer echo then vary the MPC phrase","Swap who leads in the hook","Layer both at the climax"]},{"id":"melody-052","category":"melody","title":"Pentatonic improv lead","description":"Stay in the minor pentatonic scale for easy, always-musical melodies.","recommendedDevice":"a4","difficulty":"beginner","styleFit":["west-coast","soul-sample","lofi"],"whenToUse":"When you want to jam melodies without theory worry.","implementationSteps":["Set the A4 scale to minor pentatonic","Improvise over the chords","Record several takes into the MPC","Comp the best phrases"],"variationIdeas":["Add a blue note for grit","Double the best phrase an octave up","Quantize loosely to keep feel"]},{"id":"melody-053","category":"melody","title":"Single-note hook with rhythm focus","description":"A hook built from one or two notes where the rhythm is the hook.","recommendedDevice":"a4","difficulty":"beginner","styleFit":["trap","minimalist-drum-machine","grimy-underground"],"whenToUse":"When melody should be minimal and rhythmic.","implementationSteps":["Pick one or two notes","Design a catchy rhythmic pattern","Use a punchy pluck patch","Let repetition make it stick"],"variationIdeas":["Add an occasional pitch jump","Gate it with the hats","Filter-open it across the hook"]},{"id":"melody-054","category":"melody","title":"Counter-melody under the main hook","description":"A secondary melodic line weaving beneath the main hook for depth.","recommendedDevice":"a4","difficulty":"advanced","styleFit":["soul-sample","west-coast","dark-cinematic"],"whenToUse":"When the hook feels lonely or thin.","implementationSteps":["Establish the main hook","Write a lower counter-line on the A4","Keep it in the chord tones","Pan it opposite the main hook"],"variationIdeas":["Make the counter answer the hook","Bring it forward in the second hook","Harmonize it in thirds"]},{"id":"melody-055","category":"melody","title":"Pitched percussion melody","description":"Tune a Rytm percussion voice across pitches to play a melodic line.","recommendedDevice":"rytm","difficulty":"advanced","styleFit":["experimental","minimalist-drum-machine","southern-bounce"],"whenToUse":"When you want a unique, percussive melodic timbre.","implementationSteps":["Pick a tonal Rytm voice (e.g. a tom or synth)","P-lock different pitches per step","Write a simple line","Add reverb for melodic sustain"],"variationIdeas":["Run it through a delay for arps","Layer with the A4 in unison","Detune for an off-kilter feel"]},{"id":"melody-056","category":"melody","title":"Whistle / flute-style topline","description":"A bright, airy whistle or flute lead for a catchy, chantable topline.","recommendedDevice":"a4","difficulty":"intermediate","styleFit":["southern-bounce","west-coast","trap"],"whenToUse":"When you want an instantly memorable, vocal-like hook.","implementationSteps":["Design an airy sine/triangle lead on the A4","Write a simple, catchy phrase","Add vibrato and light reverb","Keep it in a comfortable register"],"variationIdeas":["Add grace-note slides","Double an octave down softly","Answer it with a pluck"]},{"id":"melody-057","category":"melody","title":"Minimal two-note ostinato","description":"A hypnotic two-note repeating figure that anchors the track.","recommendedDevice":"a4","difficulty":"beginner","styleFit":["minimalist-drum-machine","dark-cinematic","experimental","lofi"],"whenToUse":"When you want subtle, trance-like melodic motion.","implementationSteps":["Choose two notes a step or third apart","Repeat them steadily on the A4","Use slow filter movement for interest","Let it run under everything"],"variationIdeas":["Shift one note up after 8 bars","Add a third note in the hook","Pan-modulate it slowly"]},{"id":"melody-058","category":"melody","title":"Reversed melodic swell intro","description":"Start a phrase with a reversed melody swelling into the first downbeat.","recommendedDevice":"mpc","difficulty":"intermediate","styleFit":["lofi","dark-cinematic","experimental"],"whenToUse":"When you want an atmospheric melodic entrance.","implementationSteps":["Record a melodic phrase","Reverse it in the MPC","Time the swell to land on beat 1","Crossfade into the forward melody"],"variationIdeas":["Add rising pitch to the reverse","Layer reverb that blooms","Use it before each hook"]},{"id":"melody-059","category":"melody","title":"Octave-displaced melody","description":"Take a simple melody and jump some notes up/down an octave for surprise.","recommendedDevice":"a4","difficulty":"advanced","styleFit":["experimental","west-coast","soul-sample"],"whenToUse":"When a melody feels predictable.","implementationSteps":["Write a basic melodic line","Displace 2–3 notes by an octave","Smooth the jumps with glide if needed","Keep the contour recognizable"],"variationIdeas":["Displace different notes each loop","Widen the range in the hook","Harmonize the displaced note"]},{"id":"melody-060","category":"melody","title":"Bluesy minor-third bends","description":"Add expressive pitch bends around the minor third for soulful character.","recommendedDevice":"a4","difficulty":"intermediate","styleFit":["west-coast","soul-sample","boom-bap"],"whenToUse":"When you want a vocal, human lead feel.","implementationSteps":["Play a minor-pentatonic line on the A4","Bend into the minor third","Use pitch-bend or per-step p-locks","Keep bends tasteful"],"variationIdeas":["Slow-bend a long note","Bend down for a sigh effect","Add vibrato after the bend"]},{"id":"melody-061","category":"melody","title":"Layered unison lead (analog + sample)","description":"Double an A4 lead with a sampled instrument on the MPC for a thick hybrid tone.","recommendedDevice":"any","difficulty":"advanced","styleFit":["dark-cinematic","west-coast","experimental"],"whenToUse":"When you want a bigger, signature lead sound.","implementationSteps":["Write the lead on the A4","Double it with a matching MPC sample","Tune and time-align them","Blend levels and pan slightly"],"variationIdeas":["Detune the layers a few cents","Filter one layer darker","Mute the sample layer in the verse"]},{"id":"samples-062","category":"samples","title":"Classic chop-and-rearrange flip","description":"Chop a sample across pads and replay it in a new order to create an original loop.","recommendedDevice":"mpc","difficulty":"beginner","styleFit":["boom-bap","soul-sample","east-coast","lofi"],"whenToUse":"When you want to flip a record into something new.","implementationSteps":["Load the sample into the MPC","Slice it into transient chops","Spread chops across pads","Replay them in a fresh sequence"],"variationIdeas":["Re-pitch some chops","Skip beats for syncopation","Reverse one chop for variation"]},{"id":"samples-063","category":"samples","title":"Filtered sample intro reveal","description":"Start with a heavily filtered sample, then open the filter at the drop.","recommendedDevice":"mpc","difficulty":"beginner","styleFit":"all","whenToUse":"When you want a satisfying intro-to-drop reveal.","implementationSteps":["Loop the sample on the MPC","Low-pass it hard for the intro","Automate the filter to open at the drop","Bring drums in as it opens"],"variationIdeas":["High-pass version for an outro","Notch-sweep for movement","Bitcrush the filtered version"]},{"id":"samples-064","category":"samples","title":"Time-stretch a chop into a pad","description":"Stretch a short sample chop into a long sustained pad/texture.","recommendedDevice":"mpc","difficulty":"intermediate","styleFit":["lofi","dark-cinematic","experimental","soul-sample"],"whenToUse":"When you want atmospheric texture from a sample.","implementationSteps":["Pick a tonal chop","Extreme time-stretch it in the MPC","Loop the stretched tail","Filter and reverb to taste"],"variationIdeas":["Pitch the stretched pad down","Layer two stretches","Automate the loop point for movement"]},{"id":"samples-065","category":"samples","title":"Vocal chop instrument","description":"Chop a vocal into a playable instrument across the pads for melodic hooks.","recommendedDevice":"mpc","difficulty":"intermediate","styleFit":["trap","southern-bounce","soul-sample","experimental"],"whenToUse":"When you want vocal melodies you can perform.","implementationSteps":["Isolate a clean vocal phrase","Chop per syllable/note","Map chops chromatically across pads","Play new melodies with them"],"variationIdeas":["Add formant shifting","Pitch a chop up an octave","Stutter a chop rhythmically"]},{"id":"samples-066","category":"samples","title":"Re-pitch chops into a melody","description":"Tune individual chops to different pitches to build a melodic progression.","recommendedDevice":"mpc","difficulty":"intermediate","styleFit":["soul-sample","boom-bap","lofi"],"whenToUse":"When you want melody and harmony straight from a sample.","implementationSteps":["Chop a sustained tone from a record","Assign each pad a different pitch","Play a melody/chord progression","Match levels and tone"],"variationIdeas":["Build a full chord from stacked chops","Add a sub under the root chop","Reverse for a swell"]},{"id":"samples-067","category":"samples","title":"Found-sound / foley percussion","description":"Sample everyday sounds and turn them into unique percussion or texture.","recommendedDevice":"mpc","difficulty":"beginner","styleFit":["experimental","lofi","minimalist-drum-machine"],"whenToUse":"When you want a signature, original sound palette.","implementationSteps":["Record foley (clicks, taps, objects)","Trim and map to MPC pads","Use as hats, snaps, or texture","Process to sit in the mix"],"variationIdeas":["Pitch foley into a tonal hit","Layer foley under the snare","Reverse a foley swell"]},{"id":"samples-068","category":"samples","title":"Drum break extraction","description":"Pull a drum break from a record and chop it for a vintage groove.","recommendedDevice":"mpc","difficulty":"advanced","styleFit":["boom-bap","east-coast","grimy-underground","lofi"],"whenToUse":"When you want authentic, dusty break drums.","implementationSteps":["Find a clean drum break","Chop it into individual hits","Rebuild your own pattern from the hits","Layer a Rytm kick for punch"],"variationIdeas":["Swing the chopped break","Replace the snare hit only","Resample the rebuilt break"]},{"id":"samples-069","category":"samples","title":"Texture / atmosphere sampling","description":"Sample ambience (rain, vinyl, room tone, field recordings) for a sonic bed.","recommendedDevice":"mpc","difficulty":"beginner","styleFit":["dark-cinematic","lofi","experimental"],"whenToUse":"When the track needs space and a sense of place.","implementationSteps":["Load an ambience sample","Loop it quietly under the beat","EQ it to leave room for the mix","Automate level for movement"],"variationIdeas":["Filter the ambience rhythmically","Layer two atmospheres","Bring it forward in the breakdown"]},{"id":"samples-070","category":"samples","title":"Stutter / glitch resample","description":"Resample a phrase and chop/repeat it for stutter and glitch effects.","recommendedDevice":"mpc","difficulty":"advanced","styleFit":["experimental","grimy-underground","trap"],"whenToUse":"When you want digital, broken textures and fills.","implementationSteps":["Record a phrase to a new MPC sample","Chop it finely","Program rapid retriggers/stutters","Use as a transition or fill"],"variationIdeas":["Pitch-ramp the stutter","Bitcrush the resample","Gate it against the beat"]},{"id":"samples-071","category":"samples","title":"One-shot key/chord sampling","description":"Sample a single instrument note and play it chromatically as an instrument.","recommendedDevice":"mpc","difficulty":"beginner","styleFit":["soul-sample","boom-bap","lofi"],"whenToUse":"When you want to play a real instrument's tone melodically.","implementationSteps":["Sample one clean note (key, guitar, horn)","Map it chromatically on the MPC","Set loop/decay for sustain","Play melodies or chords"],"variationIdeas":["Layer the velocity for dynamics","Add vibrato via LFO","Detune slightly for warmth"]},{"id":"samples-072","category":"samples","title":"Sample-and-hold rhythmic gate","description":"Gate a sustained sample rhythmically so it pulses with the beat.","recommendedDevice":"mpc","difficulty":"intermediate","styleFit":["experimental","lofi","minimalist-drum-machine"],"whenToUse":"When you want a static sample to become rhythmic.","implementationSteps":["Loop a sustained sample","Program a rhythmic mute/gate pattern","Sync the gate to the tempo","Smooth edges with a short fade"],"variationIdeas":["Sync the gate to the hats","Pan the gated pulses","Vary the gate pattern per section"]},{"id":"samples-073","category":"samples","title":"Pitched-down 'screwed' sample","description":"Pitch a sample way down for a slow, heavy, chopped-and-screwed vibe.","recommendedDevice":"mpc","difficulty":"beginner","styleFit":["southern-bounce","dark-cinematic","experimental","grimy-underground"],"whenToUse":"When you want a dark, syrupy southern feel.","implementationSteps":["Load a vocal or melodic sample","Pitch it down significantly","Keep the tempo, lower the pitch","Add slight time-stretch artifacts for grit"],"variationIdeas":["Half-time the whole beat to match","Add a slow phaser","Reverse a pitched-down tail"]},{"id":"samples-074","category":"samples","title":"Layered multi-sample chord","description":"Stack chops from multiple records to build a rich composite chord.","recommendedDevice":"mpc","difficulty":"advanced","styleFit":["soul-sample","dark-cinematic","lofi"],"whenToUse":"When a single sample's chord isn't full enough.","implementationSteps":["Find chord tones across different samples","Tune them to one key","Stack on a single pad/sequence","EQ each layer to fit"],"variationIdeas":["Add a synth sub from the A4","Pan the layers across the field","Filter the stack as one for movement"]},{"id":"samples-075","category":"samples","title":"Reversed sample tail transition","description":"Reverse the tail of a sample to swell into the next section.","recommendedDevice":"mpc","difficulty":"beginner","styleFit":["lofi","dark-cinematic","soul-sample","experimental"],"whenToUse":"When you need a smooth, atmospheric transition.","implementationSteps":["Grab a sample's tail/reverb","Reverse it in the MPC","Place it in the bar before a change","Time the peak to the downbeat"],"variationIdeas":["Add rising pitch","Layer with a snare roll","Pan-sweep the reverse"]},{"id":"samples-076","category":"samples","title":"Micro-loop / 1-bar earworm","description":"Loop a tiny 1-bar (or shorter) snippet to create a hypnotic earworm.","recommendedDevice":"mpc","difficulty":"intermediate","styleFit":["lofi","minimalist-drum-machine","experimental"],"whenToUse":"When repetition and groove are the goal.","implementationSteps":["Find a compelling 1-bar phrase","Loop it tightly","Layer drums and bass under it","Let small variations carry interest"],"variationIdeas":["Shorten to a half-bar loop","Filter it slowly over time","Add a fill every 8 bars"]},{"id":"texture-077","category":"texture","title":"Vinyl crackle & noise bed","description":"A continuous vinyl crackle/hiss layer for warmth and analog character.","recommendedDevice":"mpc","difficulty":"beginner","styleFit":["lofi","boom-bap","soul-sample","east-coast"],"whenToUse":"When the beat feels too clean or digital.","implementationSteps":["Load a vinyl-crackle sample on the MPC","Loop it under the whole beat","Set a low, supportive level","EQ out any harshness"],"variationIdeas":["Duck the crackle to the kick","Bring it up in quiet sections","Layer tape hiss with it"]},{"id":"texture-078","category":"texture","title":"Slow-evolving A4 pad drone","description":"A subtle background drone whose filter/timbre evolves slowly over time.","recommendedDevice":"a4","difficulty":"beginner","styleFit":["dark-cinematic","lofi","experimental","minimalist-drum-machine"],"whenToUse":"When you want depth and a sense of motion under static parts.","implementationSteps":["Build a soft drone on the A4","Add a very slow LFO to the filter","Keep level low and wide","Let it shift across the section"],"variationIdeas":["Detune slowly for unease","Add an occasional swell","Pan-modulate it gently"]},{"id":"texture-079","category":"texture","title":"Reversed cymbal / chord swells","description":"Reverse cymbals or chord tails to swell into downbeats and phrases.","recommendedDevice":"rytm","difficulty":"beginner","styleFit":"all","whenToUse":"When transitions feel abrupt or sections need lift.","implementationSteps":["Record/sample a cymbal or chord","Reverse it","Place before key downbeats","Add reverb for smoothness"],"variationIdeas":["Stack two reverses at different lengths","Pitch-rise the reverse","Use the Rytm's cymbal voice reversed"]},{"id":"texture-080","category":"texture","title":"Background foley movement","description":"Quiet foley (rain, birds, café, room tone) that adds life and space.","recommendedDevice":"mpc","difficulty":"intermediate","styleFit":["lofi","experimental","dark-cinematic"],"whenToUse":"When you want an immersive, lived-in atmosphere.","implementationSteps":["Choose ambience that fits the mood","Loop it very quietly","High-pass to avoid mud","Automate small level changes"],"variationIdeas":["Pan the ambience wide","Swap atmospheres per section","Feature it solo in the intro"]},{"id":"texture-081","category":"texture","title":"Rytm parameter-lock hat evolution","description":"Use p-locks to change hat pitch/decay/filter per step for an ever-evolving texture.","recommendedDevice":"rytm","difficulty":"intermediate","styleFit":["minimalist-drum-machine","experimental","trap"],"whenToUse":"When static hats feel lifeless.","implementationSteps":["Program a hat pattern on the Rytm","P-lock pitch on some steps","P-lock decay/filter on others","Let the pattern breathe and morph"],"variationIdeas":["P-lock reverb send on accents","Randomize a few locks","Automate the locks across sections"]},{"id":"texture-082","category":"texture","title":"Granular cloud from a chop","description":"Granularize a sample into a shimmering cloud of texture.","recommendedDevice":"mpc","difficulty":"advanced","styleFit":["experimental","dark-cinematic","lofi"],"whenToUse":"When you want abstract, evolving atmosphere.","implementationSteps":["Pick a tonal sample","Apply granular/extreme stretch on the MPC","Loop the resulting cloud","Filter and reverb it"],"variationIdeas":["Modulate grain position","Pitch-shift the cloud","Gate it rhythmically"]},{"id":"texture-083","category":"texture","title":"Sub-drop & riser pair","description":"A riser into the drop plus a sub-drop on the impact for cinematic weight.","recommendedDevice":"a4","difficulty":"beginner","styleFit":["trap","dark-cinematic","southern-bounce"],"whenToUse":"When you want big, satisfying section impacts.","implementationSteps":["Make a rising noise/pitch on the A4","Place it in the bar before the drop","Add a sub-drop (downward pitch) on the hit","Balance levels so it's felt, not muddy"],"variationIdeas":["Layer a reverse cymbal with the riser","Automate filter up with the riser","Double the sub-drop an octave down"]},{"id":"texture-084","category":"texture","title":"Tape wow & flutter wobble","description":"Apply pitch wobble (wow/flutter) for a warped, nostalgic analog feel.","recommendedDevice":"mpc","difficulty":"beginner","styleFit":["lofi","soul-sample","experimental"],"whenToUse":"When you want lo-fi imperfection and warmth.","implementationSteps":["Route the beat/sample through a tape/wow effect","Set a subtle pitch modulation","Apply to the sample or whole bus","Resample to commit"],"variationIdeas":["Increase flutter for a broken-tape feel","Modulate only the sample","Automate wobble depth"]},{"id":"texture-085","category":"texture","title":"Whitenoise sweep risers","description":"Filtered white-noise sweeps that rise into sections for energy.","recommendedDevice":"a4","difficulty":"beginner","styleFit":["trap","southern-bounce","dark-cinematic","west-coast"],"whenToUse":"When transitions need momentum.","implementationSteps":["Use noise on the A4","Automate a band-pass filter to sweep up","Time it to peak at the section change","Add reverb tail"],"variationIdeas":["Sweep down for a fall","Pan the sweep across the field","Layer with a snare roll"]},{"id":"texture-086","category":"texture","title":"Bitcrushed ear-candy blips","description":"Tiny bitcrushed/glitchy sounds that appear occasionally for interest.","recommendedDevice":"mpc","difficulty":"intermediate","styleFit":["experimental","lofi","grimy-underground","minimalist-drum-machine"],"whenToUse":"When the beat needs sparse, surprising details.","implementationSteps":["Create small blips/clicks","Bitcrush them","Place every 4–8 bars in gaps","Pan them off-center"],"variationIdeas":["Pitch-randomize each occurrence","Delay-throw a blip","Cluster a few as a fill"]},{"id":"texture-087","category":"texture","title":"Reverb-wash send layer","description":"Send elements to a long reverb to create a unifying atmospheric wash.","recommendedDevice":"any","difficulty":"beginner","styleFit":"all","whenToUse":"When the mix feels dry and disconnected.","implementationSteps":["Set up a long reverb send (MPC or A4 FX track)","Send chords/leads/snare to it","Blend the wash low","EQ the wash to avoid mud"],"variationIdeas":["Automate the send up in the breakdown","Freeze the reverb for a wash drone","Gate the reverb for rhythm"]},{"id":"texture-088","category":"texture","title":"Dub-style delay throws","description":"Throw single hits into a feedback delay for spiraling dub textures.","recommendedDevice":"rytm","difficulty":"intermediate","styleFit":["dark-cinematic","experimental","grimy-underground","southern-bounce"],"whenToUse":"When you want dynamic, performed texture.","implementationSteps":["Set a tempo-synced delay with feedback","Send a snare/clap/vocal momentarily","Perform the throws at phrase ends","Filter the delay tail"],"variationIdeas":["Increase feedback for a spiral","Pitch the delay tail","Throw on the last bar of every 8"]},{"id":"texture-089","category":"texture","title":"Field-recorded transient layer","description":"Layer subtle real-world transients (door, click, tap) for organic texture.","recommendedDevice":"mpc","difficulty":"intermediate","styleFit":["lofi","experimental","boom-bap"],"whenToUse":"When drums feel sterile.","implementationSteps":["Record small transient sounds","Layer them under hats/snare","Keep them subtle","Time them tightly to the groove"],"variationIdeas":["Pitch the transient to the key","Pan it opposite the hats","Use it as a ghost note"]},{"id":"texture-090","category":"texture","title":"Modulated stereo width pad","description":"A pad with slowly modulating stereo width for a living, breathing image.","recommendedDevice":"a4","difficulty":"advanced","styleFit":["dark-cinematic","west-coast","experimental"],"whenToUse":"When the stereo field feels static.","implementationSteps":["Build a wide A4 pad","Modulate width/pan slowly","Keep the lows mono","Blend subtly behind the mix"],"variationIdeas":["Automate width to widen at the hook","Add chorus for shimmer","Collapse to mono in the verse"]},{"id":"texture-091","category":"texture","title":"Rhythmic gated noise hat-alt","description":"Gate analog noise rhythmically as an alternative hi-hat/texture layer.","recommendedDevice":"a4","difficulty":"intermediate","styleFit":["minimalist-drum-machine","experimental","trap"],"whenToUse":"When you want an unconventional percussion texture.","implementationSteps":["Generate noise on the A4","Gate it with a fast envelope per step","Sync to the hat rhythm","Filter to taste (closed vs open)"],"variationIdeas":["Vary the gate length per step","Pitch the filter for tonality","Pan against the main hats"]},{"id":"effects-092","category":"effects","title":"One cohesive reverb space","description":"Pick a single reverb character for the whole beat to glue elements into one room.","recommendedDevice":"mpc","difficulty":"beginner","styleFit":"all","whenToUse":"When elements sound like they're in different spaces.","implementationSteps":["Choose one reverb (room/plate/hall)","Send multiple elements to it","Vary send amounts, not reverbs","EQ the return to avoid mud"],"variationIdeas":["Automate the send in breakdowns","Add a second short reverb for drums","Duck the reverb to the kick"]},{"id":"effects-093","category":"effects","title":"Snare delay throw on phrase ends","description":"Throw the snare into a tempo-synced delay on the last beat of a phrase.","recommendedDevice":"rytm","difficulty":"beginner","styleFit":"all","whenToUse":"When transitions feel flat.","implementationSteps":["Set a 1/4 or 1/8 dotted delay","Send the snare only on the last hit","Use Rytm performance/p-lock to trigger the send","Filter the delay tail"],"variationIdeas":["Increase feedback for a longer throw","Pitch the throw up","Throw the clap instead"]},{"id":"effects-094","category":"effects","title":"Analog drive on the drum bus","description":"Push the Rytm's analog overdrive on the drum bus for punch and grit.","recommendedDevice":"rytm","difficulty":"beginner","styleFit":["boom-bap","grimy-underground","east-coast","trap"],"whenToUse":"When drums lack weight or attitude.","implementationSteps":["Send drums through the Rytm's drive","Push to taste","Compensate level","Resample if committing"],"variationIdeas":["Drive only the kick/snare","Add distortion for grime","Automate drive up in the hook"]},{"id":"effects-095","category":"effects","title":"Sidechain pump to the kick","description":"Duck bass/pads/chords to the kick for a clean, pumping low end.","recommendedDevice":"any","difficulty":"intermediate","styleFit":["trap","southern-bounce","west-coast","dark-cinematic"],"whenToUse":"When the kick and sustained elements clash.","implementationSteps":["Set a sidechain trigger from the kick","Duck the bass and pad","Set release for a musical pump","Check on a sub system"],"variationIdeas":["Exaggerate for an obvious pump","Subtle duck for transparency","Pump only the pad, not the bass"]},{"id":"effects-096","category":"effects","title":"Bitcrush / sample-rate reduction","description":"Reduce bit depth/sample rate for a crunchy, lo-fi, digital texture.","recommendedDevice":"mpc","difficulty":"beginner","styleFit":["lofi","experimental","grimy-underground"],"whenToUse":"When you want gritty, degraded character.","implementationSteps":["Apply bitcrush to a sample or bus","Dial bit depth and sample rate","Blend with the dry signal","Resample to commit"],"variationIdeas":["Crush only the drums","Automate crush in the breakdown","Crush a reverb return"]},{"id":"effects-097","category":"effects","title":"Filter automation movement","description":"Automate a low-pass filter opening/closing across a section for energy curves.","recommendedDevice":"a4","difficulty":"beginner","styleFit":"all","whenToUse":"When sections feel static in energy.","implementationSteps":["Pick the element (chords/sample/bus)","Automate the filter over 8–16 bars","Open into the hook, close in the verse","Add resonance for character"],"variationIdeas":["Sweep up into the drop","LFO the filter for wobble","Notch-sweep for movement"]},{"id":"effects-098","category":"effects","title":"Tape saturation warmth","description":"Add gentle tape-style saturation for analog warmth and glue.","recommendedDevice":"mpc","difficulty":"beginner","styleFit":["lofi","soul-sample","boom-bap","west-coast"],"whenToUse":"When a digital mix feels cold or harsh.","implementationSteps":["Apply tape/saturation to the bus","Keep it subtle","Tame highs that get harsh","Check the low end stays tight"],"variationIdeas":["Saturate the sample harder","Add wow/flutter with it","Drive the master bus lightly"]},{"id":"effects-099","category":"effects","title":"Auto-pan / tremolo movement","description":"Use tempo-synced auto-pan or tremolo to animate a static element.","recommendedDevice":"a4","difficulty":"intermediate","styleFit":["experimental","lofi","dark-cinematic","west-coast"],"whenToUse":"When a sustained sound needs motion.","implementationSteps":["Apply auto-pan/tremolo on the A4 element","Sync rate to tempo","Set depth to taste","Keep the lows centered"],"variationIdeas":["Pan the lead, tremolo the pad","Increase depth into the hook","Triplet-rate for a different feel"]},{"id":"effects-100","category":"effects","title":"Phaser / flanger sweep","description":"A slow phaser/flanger for psychedelic movement on chords or the whole beat.","recommendedDevice":"a4","difficulty":"intermediate","styleFit":["west-coast","experimental","lofi","grimy-underground"],"whenToUse":"When you want trippy, evolving motion.","implementationSteps":["Apply phaser/flanger on the A4 FX or a chord","Set a slow rate","Blend depth to taste","Sync to tempo if possible"],"variationIdeas":["Sweep it manually at a transition","Flange the drum bus briefly","Automate feedback for intensity"]},{"id":"effects-101","category":"effects","title":"Multiband / surgical EQ carving","description":"Carve frequency space so each element has its own pocket.","recommendedDevice":"any","difficulty":"advanced","styleFit":"all","whenToUse":"When the mix is muddy or elements mask each other.","implementationSteps":["High-pass non-bass elements","Notch competing mids","Boost each element's signature band lightly","Reference an A/B track"],"variationIdeas":["Dynamic-EQ the mud band","Carve the pad around the vocal/lead","Tilt-EQ the whole bus to taste"]},{"id":"effects-102","category":"effects","title":"Reverb freeze / shimmer drone","description":"Freeze a reverb tail into a sustained drone for ambient texture.","recommendedDevice":"a4","difficulty":"advanced","styleFit":["dark-cinematic","experimental","lofi"],"whenToUse":"When you want an evolving atmospheric pad from FX.","implementationSteps":["Send a chord into a long/freeze reverb","Freeze the tail","Layer it under the beat","Filter and pan the drone"],"variationIdeas":["Pitch-shift the shimmer up an octave","Modulate the freeze filter","Bring it up in the breakdown"]},{"id":"effects-103","category":"effects","title":"Distortion on the 808/sub","description":"Add controlled distortion to the sub so it reads on small speakers.","recommendedDevice":"a4","difficulty":"intermediate","styleFit":["trap","grimy-underground","dark-cinematic","southern-bounce"],"whenToUse":"When the 808 disappears on phones/laptops.","implementationSteps":["Duplicate or parallel the sub","Distort the parallel copy","High-pass the distorted layer","Blend so lows stay clean but mids cut"],"variationIdeas":["Automate distortion per section","Use a soft-clip vs hard-clip","Resample to commit the tone"]},{"id":"effects-104","category":"effects","title":"Telephone / band-pass intro effect","description":"Band-pass the whole beat in the intro/breakdown, then open up for contrast.","recommendedDevice":"mpc","difficulty":"beginner","styleFit":["lofi","soul-sample","dark-cinematic","experimental"],"whenToUse":"When you want a dramatic full-range reveal.","implementationSteps":["Band-pass the master/bus for the intro","Run a bar or two","Open to full range at the drop","Add a transition swell"],"variationIdeas":["Use it for an outro fade","Automate the band narrowing","Apply only to drums for a radio feel"]},{"id":"effects-105","category":"effects","title":"Gated reverb on the snare","description":"A big reverb cut short by a gate for a punchy, 80s-style snare.","recommendedDevice":"rytm","difficulty":"intermediate","styleFit":["dark-cinematic","trap","west-coast"],"whenToUse":"When you want a huge but tight snare.","implementationSteps":["Add a large reverb to the snare","Gate it to cut the tail short","Tune gate time to the tempo","Balance dry/wet"],"variationIdeas":["Lengthen the gate in the hook","Apply to the clap instead","Trigger the gate from the hats"]},{"id":"effects-106","category":"effects","title":"Stutter / glitch FX fill","description":"Use a beat-repeat/stutter effect as a fill into a section change.","recommendedDevice":"mpc","difficulty":"advanced","styleFit":["experimental","trap","grimy-underground"],"whenToUse":"When you want a digital, energetic transition.","implementationSteps":["Set a beat-repeat/stutter effect","Engage it on the last 1–2 beats of a phrase","Vary repeat rate for a build","Release into the new section"],"variationIdeas":["Pitch-ramp the stutter","Bitcrush the stutter","Gate it for rhythm"]},{"id":"transition-107","category":"transition","title":"Snare-roll build into the hook","description":"A snare/clap roll that accelerates into the next section for momentum.","recommendedDevice":"rytm","difficulty":"beginner","styleFit":"all","whenToUse":"When you need energy lifting into a hook or drop.","implementationSteps":["Program a snare roll on the Rytm","Accelerate it over the last bar (1/8→1/16→1/32)","Crescendo the velocity","Land hard on the downbeat"],"variationIdeas":["Add a riser under the roll","Pitch the roll up","Cut to silence right before the hit"]},{"id":"transition-108","category":"transition","title":"Silence before the drop","description":"Cut everything for a beat (or a bar) before the drop for maximum impact.","recommendedDevice":"mpc","difficulty":"beginner","styleFit":"all","whenToUse":"When a drop needs to hit harder.","implementationSteps":["Mute all tracks for the last beat/bar","Optionally leave one reverse swell","Hit the drop full and hard","Use MPC mute automation"],"variationIdeas":["Leave only a vocal/lead in the gap","Add a tape-stop into the silence","Half the silence for a shorter tease"]},{"id":"transition-109","category":"transition","title":"Riser + sub-drop combo","description":"A rising sweep into the change plus a downward sub-drop on the impact.","recommendedDevice":"a4","difficulty":"intermediate","styleFit":["trap","dark-cinematic","southern-bounce"],"whenToUse":"When you want cinematic, satisfying section changes.","implementationSteps":["Build a noise/pitch riser on the A4","Place it in the bar before the change","Add a sub-drop on the downbeat","Balance so it's felt not muddy"],"variationIdeas":["Layer a reverse cymbal","Automate filter up with the riser","Double the sub-drop low"]},{"id":"transition-110","category":"transition","title":"Filter sweep up into chorus","description":"Sweep a low-pass filter open across the whole mix into the hook.","recommendedDevice":"any","difficulty":"beginner","styleFit":"all","whenToUse":"When you want a smooth energy lift.","implementationSteps":["Automate a master/bus low-pass","Close it in the build, open at the hook","Add resonance for drama","Time the peak to the downbeat"],"variationIdeas":["High-pass sweep for a different feel","Combine with a riser","Sweep down for an outro"]},{"id":"transition-111","category":"transition","title":"Reverse cymbal / chord swell","description":"A reversed cymbal or chord swelling up into the downbeat.","recommendedDevice":"rytm","difficulty":"beginner","styleFit":"all","whenToUse":"When transitions feel abrupt.","implementationSteps":["Reverse a cymbal/chord","Place it before the change","Time the peak to beat 1","Add reverb for smoothness"],"variationIdeas":["Stack two lengths","Pitch-rise the reverse","Pan-sweep it across"]},{"id":"transition-112","category":"transition","title":"Drum fill / break turnaround","description":"A classic drum fill or 1-bar break to turn the beat around into a new section.","recommendedDevice":"rytm","difficulty":"intermediate","styleFit":["boom-bap","east-coast","west-coast","soul-sample"],"whenToUse":"When you want a musical, human transition.","implementationSteps":["Program a tom/snare fill on the Rytm","Place it in the last bar of the phrase","Vary it from the main groove","Land cleanly on the downbeat"],"variationIdeas":["Drop to drums-only for the fill","Add a flam or roll","Throw the fill into a delay"]},{"id":"transition-113","category":"transition","title":"Tape-stop / pitch-down stop","description":"A tape-stop effect slowing the beat to a halt before a change.","recommendedDevice":"mpc","difficulty":"intermediate","styleFit":["experimental","lofi","grimy-underground","southern-bounce"],"whenToUse":"When you want a dramatic, gritty stop.","implementationSteps":["Apply a tape-stop on the bus","Trigger it on the last beat","Let it slow to silence","Hit the new section fresh"],"variationIdeas":["Speed-up version (tape-start)","Pitch-down only the sample","Glitch it instead of a clean stop"]},{"id":"transition-114","category":"transition","title":"Beat-switch transition","description":"Switch to a contrasting beat/feel at a key moment, bridged by a transition.","recommendedDevice":"mpc","difficulty":"advanced","styleFit":["trap","experimental","dark-cinematic"],"whenToUse":"When you want a dramatic second-half change.","implementationSteps":["Prepare the second beat in the MPC","Use a fill/silence/vocal to bridge","Switch sequences cleanly","Keep one element constant to connect"],"variationIdeas":["Change BPM feel at the switch","Switch back for the final hook","Layer both beats for one bar"]},{"id":"transition-115","category":"transition","title":"Downlifter into the verse","description":"A descending pitch/filter sweep to bring energy DOWN into a verse.","recommendedDevice":"a4","difficulty":"intermediate","styleFit":["dark-cinematic","trap","experimental"],"whenToUse":"When you want to relax energy after a hook.","implementationSteps":["Build a falling sweep on the A4","Place it leaving the hook","Lower the filter/energy","Settle into the verse groove"],"variationIdeas":["Add a sub-drop","Reverse-reverb tail","Filter the whole mix down briefly"]},{"id":"transition-116","category":"transition","title":"Vocal / sample stutter lead-in","description":"Stutter a vocal or sample chop to lead into a new section.","recommendedDevice":"mpc","difficulty":"intermediate","styleFit":["southern-bounce","trap","experimental","soul-sample"],"whenToUse":"When you want a vocal-driven transition.","implementationSteps":["Pick a vocal/sample chop","Stutter/repeat it over the last beat","Accelerate the repeats","Release into the section"],"variationIdeas":["Pitch-ramp the stutter","Add delay on release","Gate it to the beat"]},{"id":"transition-117","category":"transition","title":"Mute-drop breakdown","description":"Strip back to one or two elements for a breakdown, then rebuild.","recommendedDevice":"rytm","difficulty":"beginner","styleFit":["minimalist-drum-machine","west-coast","boom-bap","lofi"],"whenToUse":"When the track needs a dynamic dip and rebuild.","implementationSteps":["Mute most tracks for 4–8 bars","Leave a key element (bass or chords)","Rebuild elements one at a time","Use MPC mute automation"],"variationIdeas":["Drop to drums-only","Add a new element on the rebuild","Filter the remaining element"]},{"id":"transition-118","category":"transition","title":"Impact hit on the downbeat","description":"A big cinematic impact/boom on the first beat of a new section.","recommendedDevice":"rytm","difficulty":"beginner","styleFit":["dark-cinematic","trap","southern-bounce"],"whenToUse":"When section starts need weight.","implementationSteps":["Design/sample an impact hit","Place it on the new section's beat 1","Add reverb for size","Tune it to the key"],"variationIdeas":["Layer a sub-drop","Reverse-swell into it","Use a crash with it"]},{"id":"transition-119","category":"transition","title":"Drum-only bar before the hook","description":"Drop everything but drums for one bar to spotlight the groove before the hook.","recommendedDevice":"rytm","difficulty":"beginner","styleFit":"all","whenToUse":"When you want a punchy, classic turnaround.","implementationSteps":["Mute melodic elements for 1 bar","Let the drums (maybe a fill) carry it","Bring everything back on the hook","Use MPC automation"],"variationIdeas":["Add a fill in that bar","Keep the bass too","Throw a delay on the last snare"]},{"id":"transition-120","category":"transition","title":"Crescendo riser layer stack","description":"Stack multiple risers (noise, pitch, drum roll) for a massive build.","recommendedDevice":"a4","difficulty":"advanced","styleFit":["trap","dark-cinematic","southern-bounce"],"whenToUse":"When you want the biggest possible lift into a drop.","implementationSteps":["Layer a noise riser, pitch riser, and snare roll","Crescendo all together","Automate filters opening","Cut to silence then hit the drop"],"variationIdeas":["Add a reverse cymbal on top","Pitch-bend the whole mix up","Extend the build over 8 bars"]},{"id":"transition-121","category":"transition","title":"Half-time / double-time flip","description":"Flip the drums to half- or double-time briefly as a transition device.","recommendedDevice":"mpc","difficulty":"advanced","styleFit":["trap","experimental","southern-bounce"],"whenToUse":"When you want a rhythmic surprise into a section.","implementationSteps":["Reprogram the drums to half/double-time for a bar","Keep the bass/melody constant","Use it as the transition bar","Resolve to the normal feel"],"variationIdeas":["Half-time the whole hook","Double-time only the hats","Switch feel at the beat-switch"]},{"id":"arrangement-122","category":"arrangement","title":"Drums+bass verse → add chords in hook","description":"Keep verses to drums and bass; introduce chords/lead in the hook for contrast.","recommendedDevice":"mpc","difficulty":"beginner","styleFit":"all","whenToUse":"When you want clear energy contrast between sections.","implementationSteps":["Build the verse with drums + bass only","Add chords/lead for the hook","Use MPC mutes to switch","Repeat for verse 2"],"variationIdeas":["Add a counter-melody in hook 2","Strip the hook to chords-only once","Bring the lead into verse 2"]},{"id":"arrangement-123","category":"arrangement","title":"8-bar intro that strips to one element","description":"Open with a single element (sample/chords) for 8 bars, then build the beat.","recommendedDevice":"mpc","difficulty":"beginner","styleFit":"all","whenToUse":"When you want an inviting, gradual intro.","implementationSteps":["Pick one element for the intro","Run it 8 bars","Add drums at bar 5 or 9","Reveal the full beat at the hook"],"variationIdeas":["Filter the intro element","Add vinyl/ambience under it","Drop a fill before the beat enters"]},{"id":"arrangement-124","category":"arrangement","title":"Hook-first (top-loaded) structure","description":"Lead with the hook to grab attention immediately, common in modern hip-hop.","recommendedDevice":"mpc","difficulty":"intermediate","styleFit":["trap","southern-bounce","west-coast"],"whenToUse":"When the hook is the strongest part and needs front placement.","implementationSteps":["Start with a short hook","Drop to the verse","Return to the hook","End on a final extended hook"],"variationIdeas":["Tease the hook melody in the intro","Vary the final hook","Add an outro tag"]},{"id":"arrangement-125","category":"arrangement","title":"Subtractive mute-based arrangement","description":"Build a full pattern, then arrange the song by muting/unmuting parts live.","recommendedDevice":"rytm","difficulty":"intermediate","styleFit":["minimalist-drum-machine","west-coast","experimental","lofi"],"whenToUse":"When the groove is the song and you want a hardware-performance flow.","implementationSteps":["Program a complete pattern on all devices","Mute most to start","Unmute elements over time","Record the mute performance into the MPC"],"variationIdeas":["Drop to kick-only mid-song","Bring hats in last","Automate a filter during mutes"]},{"id":"arrangement-126","category":"arrangement","title":"Classic verse/hook/verse/hook/bridge/hook","description":"A song-form arrangement with a contrasting bridge for a complete track.","recommendedDevice":"mpc","difficulty":"beginner","styleFit":["west-coast","east-coast","soul-sample","southern-bounce"],"whenToUse":"When you want a full, vocal-ready song structure.","implementationSteps":["Map intro–V1–H–V2–H–bridge–H–outro","Set section lengths (8/8/8...)","Differentiate the bridge harmonically","Build energy to the final hook"],"variationIdeas":["Double the final hook","Add a pre-hook lift","Breakdown before the bridge"]},{"id":"arrangement-127","category":"arrangement","title":"Beat-switch second half","description":"Change the beat entirely halfway through for a dramatic two-part track.","recommendedDevice":"mpc","difficulty":"advanced","styleFit":["trap","experimental","dark-cinematic"],"whenToUse":"When you want a memorable structural surprise.","implementationSteps":["Build beat A for the first half","Build a contrasting beat B","Bridge them with a transition","Keep one element to connect"],"variationIdeas":["Change key at the switch","Switch back for the finale","Change BPM feel"]},{"id":"arrangement-128","category":"arrangement","title":"Loop-and-evolve (minimal change)","description":"Keep one loop running and evolve it subtly with small additions/automations.","recommendedDevice":"mpc","difficulty":"beginner","styleFit":["lofi","minimalist-drum-machine","boom-bap"],"whenToUse":"When you want a hypnotic, understated track.","implementationSteps":["Set the core loop","Add one element every 8 bars","Automate filters/effects for motion","Remove elements near the end"],"variationIdeas":["Add a single bridge variation","Filter the whole loop down then up","Introduce a fill every 16 bars"]},{"id":"arrangement-129","category":"arrangement","title":"Energy-curve mapping","description":"Plan each section's energy (1–5) so the track has a deliberate dynamic arc.","recommendedDevice":"mpc","difficulty":"intermediate","styleFit":"all","whenToUse":"When sections feel same-y or the track drags.","implementationSteps":["Assign an energy level to each section","Ensure contrast (dips before peaks)","Add/remove elements to hit targets","Place the biggest moment ~2/3 through"],"variationIdeas":["Add a false peak then a bigger one","Dip to near-silence before the finale","Map energy to the reference track"]},{"id":"arrangement-130","category":"arrangement","title":"Pre-hook lift section","description":"A short 2–4 bar pre-hook that builds anticipation before the chorus.","recommendedDevice":"a4","difficulty":"intermediate","styleFit":["southern-bounce","west-coast","trap"],"whenToUse":"When the jump from verse to hook feels too sudden.","implementationSteps":["Create a 2–4 bar pre-hook","Add a riser or new chord","Lift the energy slightly","Land into the full hook"],"variationIdeas":["Filter-sweep through the pre-hook","Add a vocal chop","Drop drums then slam the hook"]},{"id":"arrangement-131","category":"arrangement","title":"Drum-break breakdown","description":"Strip to a drum break/solo for a few bars as a breakdown moment.","recommendedDevice":"rytm","difficulty":"beginner","styleFit":["boom-bap","east-coast","west-coast","soul-sample"],"whenToUse":"When you want a classic head-nod breakdown.","implementationSteps":["Mute melodic parts for 2–4 bars","Feature the drums (maybe a variation)","Optionally add a scratch/vocal","Rebuild into the next section"],"variationIdeas":["Add a fill to exit","Keep a filtered sample under it","Half-time the break"]},{"id":"arrangement-132","category":"arrangement","title":"Outro fade / filter-down","description":"End by filtering down and removing elements for a graceful outro.","recommendedDevice":"mpc","difficulty":"beginner","styleFit":"all","whenToUse":"When you need a clean, satisfying ending.","implementationSteps":["Strip elements over the last 4–8 bars","Automate a low-pass closing","Leave a final element to fade","End on a clean tail"],"variationIdeas":["Loop a final chop to fade","Tape-stop ending","End cold on a hit"]},{"id":"arrangement-133","category":"arrangement","title":"AABA hook variation logic","description":"Structure phrases as AABA so the hook varies its third statement for interest.","recommendedDevice":"a4","difficulty":"advanced","styleFit":["soul-sample","west-coast","experimental"],"whenToUse":"When repeated hooks feel monotonous.","implementationSteps":["Write hook A","Repeat A","Write a contrasting B (bridge feel)","Return to A varied"],"variationIdeas":["Transpose the final A","Add a counter-melody in the last A","Extend B for a full bridge"]},{"id":"arrangement-134","category":"arrangement","title":"Section-length tuning by substyle","description":"Set section lengths to match the substyle's norms (trap shorter, boom-bap looping).","recommendedDevice":"mpc","difficulty":"beginner","styleFit":"all","whenToUse":"When you're unsure how long sections should be.","implementationSteps":["Check the substyle's arrangement tendencies","Set intro/verse/hook lengths accordingly","Keep trap hooks tight, lo-fi loops long","A/B against a reference"],"variationIdeas":["Halve a section for pace","Double the final hook","Add a tag after the outro"]},{"id":"arrangement-135","category":"arrangement","title":"Two-part dynamic (quiet → loud)","description":"Build the whole track from a quiet first half to a full, loud second half.","recommendedDevice":"mpc","difficulty":"intermediate","styleFit":["dark-cinematic","experimental","lofi"],"whenToUse":"When you want a cinematic, evolving dynamic.","implementationSteps":["Keep the first half sparse and quiet","Gradually add elements","Peak in the second half","Use automation for the swell"],"variationIdeas":["Add a sudden drop at the peak","Pull back once before the climax","Filter-open across the whole track"]},{"id":"arrangement-136","category":"arrangement","title":"Capture a live hardware jam, then edit","description":"Perform a long live take across all devices into the MPC, then edit it into a song.","recommendedDevice":"mpc","difficulty":"advanced","styleFit":["minimalist-drum-machine","experimental","west-coast"],"whenToUse":"When you want a spontaneous, human arrangement.","implementationSteps":["Set all devices syncing to the MPC clock","Record a long live performance (mutes, fills, tweaks)","Capture audio and/or MIDI","Edit the best moments into a structure"],"variationIdeas":["Comp two takes together","Loop the best 8 bars as a base","Keep happy accidents"]},{"id":"automation-137","category":"automation","title":"Live mute performance capture","description":"Record a live performance of track mutes to arrange the song with human feel.","recommendedDevice":"mpc","difficulty":"beginner","styleFit":"all","whenToUse":"When you want a performed, dynamic arrangement.","implementationSteps":["Build a full pattern","Arm the MPC to record mutes","Perform the arrangement live (intro→outro)","Keep the best take"],"variationIdeas":["Layer two mute takes","Automate a filter while muting","Punch in fixes on weak spots"]},{"id":"automation-138","category":"automation","title":"Slow filter open across a verse","description":"Automate a filter slowly opening over 8–16 bars for a gradual energy lift.","recommendedDevice":"a4","difficulty":"beginner","styleFit":"all","whenToUse":"When sections feel static.","implementationSteps":["Pick the element (chords/sample/bus)","Automate the filter low→high over the section","Add resonance for character","Reset for the next loop"],"variationIdeas":["Open into the hook only","LFO under the automation","Close it for the outro"]},{"id":"automation-139","category":"automation","title":"Rytm performance-macro fills","description":"Use the Rytm performance macros for live snare delay throws, kick decay, filter sweeps.","recommendedDevice":"rytm","difficulty":"intermediate","styleFit":["trap","minimalist-drum-machine","experimental"],"whenToUse":"When you want expressive, hands-on drum variation.","implementationSteps":["Assign performance macros on the Rytm","Map them to useful params (decay, delay send, filter)","Perform them at transitions/fills","Record the result into the MPC"],"variationIdeas":["Throw a snare delay at phrase ends","Sweep the hat filter live","Crush the kick momentarily"]},{"id":"automation-140","category":"automation","title":"A4 parameter-lock evolution","description":"Use p-locks so the synth evolves note-to-note across the pattern.","recommendedDevice":"a4","difficulty":"intermediate","styleFit":["experimental","minimalist-drum-machine","dark-cinematic"],"whenToUse":"When a synth part feels static.","implementationSteps":["Program the A4 part","P-lock filter/env/pitch on select steps","Let the part morph each bar","Record long passes for variation"],"variationIdeas":["P-lock the FX send on accents","Randomize a few locks","Change locks per section"]},{"id":"automation-141","category":"automation","title":"Tempo-synced LFO wobble","description":"Add a tempo-synced LFO to filter/pitch/amp for rhythmic movement.","recommendedDevice":"a4","difficulty":"beginner","styleFit":["trap","experimental","lofi","grimy-underground"],"whenToUse":"When you want hands-off rhythmic motion.","implementationSteps":["Pick the target (filter, pitch, amp)","Set the A4 LFO synced to tempo","Choose rate (1/4, 1/8, 1/16)","Set depth to taste"],"variationIdeas":["Change LFO shape (sine vs square)","Speed the LFO into the drop","Apply to the bass for wobble"]},{"id":"automation-142","category":"automation","title":"Volume-swell pad automation","description":"Automate a pad swelling in and out for breathing atmosphere.","recommendedDevice":"a4","difficulty":"beginner","styleFit":["dark-cinematic","lofi","experimental"],"whenToUse":"When a pad sits too statically.","implementationSteps":["Build a pad on the A4","Automate its volume to swell each phrase","Time swells to section starts","Keep it subtle"],"variationIdeas":["Swell into every hook","Add filter movement with the swell","Crossfade two pads"]},{"id":"automation-143","category":"automation","title":"Send-level automation (reverb/delay)","description":"Automate FX send levels to add space/movement at key moments.","recommendedDevice":"mpc","difficulty":"intermediate","styleFit":"all","whenToUse":"When the FX should breathe with the arrangement.","implementationSteps":["Set a reverb/delay send","Automate the send up in breakdowns","Pull it back in dense sections","Time changes to the arrangement"],"variationIdeas":["Throw a send spike on phrase ends","Automate delay feedback","Open the send for the outro"]},{"id":"automation-144","category":"automation","title":"Panning automation movement","description":"Automate panning of an element for stereo motion and interest.","recommendedDevice":"any","difficulty":"intermediate","styleFit":["experimental","west-coast","lofi"],"whenToUse":"When the stereo image feels static.","implementationSteps":["Pick a non-bass element","Automate slow pan moves","Keep lows centered","Time moves musically"],"variationIdeas":["Ping-pong an element","Auto-pan synced to tempo","Widen into the hook"]},{"id":"automation-145","category":"automation","title":"Drum density automation","description":"Vary drum density over the arrangement (sparse verse, busy hook) via mutes/p-locks.","recommendedDevice":"rytm","difficulty":"intermediate","styleFit":"all","whenToUse":"When drums feel the same throughout.","implementationSteps":["Program a busy full pattern","Mute elements for sparse sections","Unmute for busy sections","Automate the changes in the MPC"],"variationIdeas":["Add hat rolls only in hooks","Drop the kick in a breakdown","Double-time hats into the drop"]},{"id":"automation-146","category":"automation","title":"Pitch-rise automation into drop","description":"Automate a pitch rise on a synth/noise to build tension into a drop.","recommendedDevice":"a4","difficulty":"intermediate","styleFit":["trap","dark-cinematic","southern-bounce"],"whenToUse":"When you want a rising-tension transition.","implementationSteps":["Pick a synth/noise on the A4","Automate pitch up over the build","Combine with a filter open","Cut/resolve at the drop"],"variationIdeas":["Add a riser layer","Pitch the whole mix up briefly","Reverse-tail into the drop"]},{"id":"automation-147","category":"automation","title":"Resonance sweep accents","description":"Automate filter resonance up for screaming accents at key moments.","recommendedDevice":"a4","difficulty":"advanced","styleFit":["experimental","minimalist-drum-machine","grimy-underground"],"whenToUse":"When you want aggressive, attention-grabbing motion.","implementationSteps":["Set the A4 filter with resonance","Automate resonance up on accents","Watch levels (resonance can spike)","Use sparingly for impact"],"variationIdeas":["Self-oscillate for a tone","Sweep resonance + cutoff together","Automate per section"]},{"id":"automation-148","category":"automation","title":"Distortion/drive automation","description":"Automate analog drive/distortion to intensify sections.","recommendedDevice":"rytm","difficulty":"intermediate","styleFit":["grimy-underground","trap","dark-cinematic"],"whenToUse":"When you want sections to get progressively grittier.","implementationSteps":["Set drive on the Rytm/A4","Automate it up toward the climax","Compensate level","Pull back for contrast"],"variationIdeas":["Drive only in the final hook","Bitcrush automation","Drive the bus for a section"]},{"id":"automation-149","category":"automation","title":"Stutter/retrig performance","description":"Perform live retriggers/stutters on the Rytm or MPC as fills and accents.","recommendedDevice":"rytm","difficulty":"advanced","styleFit":["experimental","trap","grimy-underground"],"whenToUse":"When you want spontaneous, glitchy variation.","implementationSteps":["Set up retrig on the Rytm or note-repeat on MPC","Perform it at phrase ends","Vary the rate for builds","Record the performance"],"variationIdeas":["Pitch-ramp the retrig","Stutter a vocal chop","Gate the stutter"]},{"id":"automation-150","category":"automation","title":"Crossfade between pattern variations","description":"Smoothly transition between A/B Elektron patterns by recording the crossover live.","recommendedDevice":"mpc","difficulty":"advanced","styleFit":["minimalist-drum-machine","experimental","west-coast"],"whenToUse":"When you want organic evolution between variations.","implementationSteps":["Create A and B patterns on an Elektron","Switch between them while recording into the MPC","Use a fill/transition to mask the switch","Capture the live change"],"variationIdeas":["Morph params during the switch","Layer both briefly","Automate a filter over the switch"]},{"id":"automation-151","category":"automation","title":"Automated breakdown + rebuild","description":"Automate a full breakdown (elements out, filter down) and a rebuild.","recommendedDevice":"mpc","difficulty":"intermediate","styleFit":"all","whenToUse":"When you want a dynamic dip without manual muting each time.","implementationSteps":["Automate elements muting into the breakdown","Automate a filter closing","Rebuild elements one at a time","Open the filter into the next section"],"variationIdeas":["Add a riser on the rebuild","Leave only bass in the dip","Add a new element on rebuild"]},{"id":"mixprep-152","category":"mixprep","title":"Gain-stage every element first","description":"Set healthy, consistent levels before any processing so the mix starts clean.","recommendedDevice":"mpc","difficulty":"beginner","styleFit":"all","whenToUse":"When you're about to start mixing or prepping stems.","implementationSteps":["Bring all faders down","Set the loudest element to a healthy level","Balance others against it","Leave master headroom (~-6 dB)"],"variationIdeas":["Gain-stage to a reference track","Group similar elements first","Check the master meter for peaks"]},{"id":"mixprep-153","category":"mixprep","title":"Mix at low volume","description":"Balance the rough mix quietly; if it works soft, it translates loud.","recommendedDevice":"mpc","difficulty":"beginner","styleFit":"all","whenToUse":"When you want a balanced mix that translates.","implementationSteps":["Turn the monitors down low","Balance the core elements first","Add detail elements last","Check translation on phone speakers"],"variationIdeas":["A/B at two volumes","Mono-check the balance","Reference a commercial track quietly"]},{"id":"mixprep-154","category":"mixprep","title":"Carve the low-end (kick vs. bass)","description":"Make sure the kick and bass each own their space in the low end.","recommendedDevice":"a4","difficulty":"intermediate","styleFit":"all","whenToUse":"When the low end is muddy or weak.","implementationSteps":["Decide who owns the sub (usually 808/bass)","High-pass the kick slightly OR the bass","Sidechain the bass to the kick","Check on a sub speaker/headphones"],"variationIdeas":["EQ a notch in the bass for the kick","Mono the lows","Pick complementary kick/bass tunings"]},{"id":"mixprep-155","category":"mixprep","title":"High-pass non-bass elements","description":"Remove unnecessary low frequencies from everything except the bass/kick.","recommendedDevice":"mpc","difficulty":"beginner","styleFit":"all","whenToUse":"When the mix is cluttered or muddy in the lows.","implementationSteps":["High-pass pads/leads/hats/samples","Set each HPF by ear (remove rumble only)","Keep the bass/kick full-range","Recheck the low-end clarity"],"variationIdeas":["Steeper HPF for busy mixes","Automate HPF in dense sections","HPF the reverb returns"]},{"id":"mixprep-156","category":"mixprep","title":"Reference-track A/B comparison","description":"Compare your mix to a professional reference for tonal and level balance.","recommendedDevice":"mpc","difficulty":"beginner","styleFit":"all","whenToUse":"When you're unsure if the mix is balanced.","implementationSteps":["Import a reference on a muted track","Match its loudness for fair comparison","A/B tonal balance (lows/mids/highs)","Adjust toward (not copying) the reference"],"variationIdeas":["Use a spectrum analyzer to compare","A/B the low-end weight","Check stereo width vs reference"]},{"id":"mixprep-157","category":"mixprep","title":"Pan for width and clarity","description":"Spread elements across the stereo field so each is heard clearly.","recommendedDevice":"mpc","difficulty":"beginner","styleFit":"all","whenToUse":"When elements mask each other in the center.","implementationSteps":["Keep kick/snare/bass centered","Pan hats/percussion slightly off","Pan ear candy wide","Balance left/right energy"],"variationIdeas":["Mirror-pan doubled elements","Widen the pad with stereo FX","Mono-check for phase issues"]},{"id":"mixprep-158","category":"mixprep","title":"Bus / glue compression","description":"Light bus compression to glue the mix together.","recommendedDevice":"mpc","difficulty":"intermediate","styleFit":"all","whenToUse":"When the mix feels disjointed.","implementationSteps":["Add a compressor on the mix bus","Use gentle settings (2:1, slow attack)","Aim for 1–2 dB gain reduction","Listen for cohesion, not pumping"],"variationIdeas":["Parallel-compress the drums","Glue the drum bus separately","Add make-up gain carefully"]},{"id":"mixprep-159","category":"mixprep","title":"Resample/print FX to commit","description":"Resample processed elements to commit the sound and simplify the mix.","recommendedDevice":"mpc","difficulty":"intermediate","styleFit":["lofi","experimental","boom-bap","grimy-underground"],"whenToUse":"When you have heavy processing you're happy with.","implementationSteps":["Solo and record the processed element","Save it as a new sample","Replace the live-processed version","Free up CPU/effects"],"variationIdeas":["Keep a dry backup","Resample the whole drum bus","Print the master FX chain"]},{"id":"mixprep-160","category":"mixprep","title":"Tame harsh resonances","description":"Find and reduce harsh frequency peaks for a smoother mix.","recommendedDevice":"a4","difficulty":"intermediate","styleFit":"all","whenToUse":"When something sounds harsh or fatiguing.","implementationSteps":["Sweep a narrow EQ boost to find harshness","Cut that frequency","Check synths/cymbals/samples especially","A/B to confirm improvement"],"variationIdeas":["Dynamic-EQ the harsh band","De-ess bright samples","Tame A4 filter resonance"]},{"id":"mixprep-161","category":"mixprep","title":"Set up stems / individual outs","description":"Route drums/bass/melody to separate outputs for clean stem capture.","recommendedDevice":"rytm","difficulty":"intermediate","styleFit":"all","whenToUse":"When prepping for external mixing or stem export.","implementationSteps":["Decide stem groups (drums/bass/harmony/melody/texture)","Route each to its own output/track","Record each cleanly into the MPC","Label consistently"],"variationIdeas":["Use Rytm individual outs for drum stems","Print dry + wet stems","Group sub-mixes for fewer stems"]},{"id":"mixprep-162","category":"mixprep","title":"Check mono compatibility","description":"Sum the mix to mono to catch phase cancellation and balance issues.","recommendedDevice":"mpc","difficulty":"beginner","styleFit":"all","whenToUse":"When you've used wide stereo effects.","implementationSteps":["Sum the master to mono","Listen for elements disappearing","Fix phase issues on wide elements","Keep the lows mono"],"variationIdeas":["Mono-check each section","Narrow problematic wide elements","Re-pan after mono-checking"]},{"id":"mixprep-163","category":"mixprep","title":"Sidechain pad/sample to the kick","description":"Duck sustained elements to the kick for a punchy, clear mix.","recommendedDevice":"any","difficulty":"intermediate","styleFit":["trap","dark-cinematic","west-coast","southern-bounce"],"whenToUse":"When the kick gets buried by pads/samples.","implementationSteps":["Sidechain the pad/sample to the kick","Set gentle ducking","Tune the release musically","Confirm the kick punches through"],"variationIdeas":["Subtle duck for transparency","Pump for an obvious effect","Sidechain the reverb too"]},{"id":"mixprep-164","category":"mixprep","title":"Headroom & master-bus prep","description":"Leave proper headroom on the master so mastering has room to work.","recommendedDevice":"mpc","difficulty":"beginner","styleFit":"all","whenToUse":"When prepping the final export.","implementationSteps":["Aim for master peaks around -6 dB","Remove any limiter for stem export","Leave a light limiter only for a reference mix","Check no clipping anywhere"],"variationIdeas":["Print a -6 dB and a louder reference","Leave the master clean for stems","Note target loudness"]},{"id":"mixprep-165","category":"mixprep","title":"Write recall / session notes","description":"Document BPM, key, kits, patches, and routing for future recall.","recommendedDevice":"mpc","difficulty":"beginner","styleFit":"all","whenToUse":"When finishing a session you may return to.","implementationSteps":["Note BPM, key, swing","List Rytm kit and A4 patches used","Note MIDI routing and levels","Save with the project files"],"variationIdeas":["Photo the hardware settings","Export a settings text file","Note unfinished ideas for later"]},{"id":"mixprep-166","category":"mixprep","title":"Balance check on multiple speakers","description":"Audition the rough mix on phone, laptop, earbuds, and monitors.","recommendedDevice":"mpc","difficulty":"beginner","styleFit":"all","whenToUse":"When confirming the mix translates before export.","implementationSteps":["Bounce a rough mix","Play it on phone speakers","Check laptop + earbuds","Note what changes and adjust"],"variationIdeas":["Check in the car","A/B on each system vs reference","Fix the worst-translating element"]}],"DEFAULT_DEVICES":[{"id":"mpc","name":"Akai MPC Live III","role":"Master clock, main sequencer, arranger, sampler & song-structure hub.","midiChannel":"—  (sends clock + per-track MIDI out)","clockRole":"master","audioRoutingNotes":"Main outs to monitors/interface. Record Rytm & A4 audio into MPC tracks for resampling/stems. Consider individual outs for stems.","preferredUseCases":["Sample chopping & flipping","Song arrangement / sections","Master tempo & swing","Recording external gear (audio + MIDI)","Performance mutes & automation"],"userNotes":""},{"id":"rytm","name":"Elektron Analog Rytm MKII","role":"Drums, percussion, fills, parameter locks & analog drum design.","midiChannel":"Ch 9 (default Auto channel) — per-track channels editable","clockRole":"receives","audioRoutingNotes":"Stereo (or individual) outs into MPC inputs or interface. Record drum bus and/or stems for mix prep.","preferredUseCases":["Analog kick/snare/clap design","Hi-hat texture & ratchets","Performance fills & p-locks","Percussion layers under samples"],"userNotes":""},{"id":"a4","name":"Elektron Analog Four MKII","role":"Bass, chords, leads, pads, textures & analog melodic synthesis.","midiChannel":"Ch 1–4 per track (default) — editable","clockRole":"receives","audioRoutingNotes":"Stereo (or individual) outs into MPC inputs or interface. CV outs available for modular if desired.","preferredUseCases":["Sub & synth bass with glide","Chord stabs & pads","Lead melodies & motifs","Evolving textures & drones"],"userNotes":""}],"DEFAULT_ROUTING":{"masterClockDevice":"mpc","sendsMidiClock":true,"notes":{"clock":"MPC Live III set as master clock; MIDI Clock + Start/Stop sent out. Rytm & A4 set to receive clock/transport (CLOCK RECEIVE + TRANSPORT RECEIVE on the Elektrons).","midiOut":"MPC MIDI/USB out → Rytm and A4. Assign MPC MIDI tracks to the Elektron channels you choose (e.g. A4 tracks on Ch 1–4, Rytm on Ch 9 or per-track). Verify against your own MIDI config.","audio":"Rytm + A4 audio outs → MPC inputs (or audio interface). Record performances as audio for resampling and stems. Decide stereo vs. individual outs based on mix needs.","arrangementCapture":"Build patterns on each device, then capture the song by either: (a) sequencing Elektron pattern changes from MPC program/CC, or (b) recording long audio passes into the MPC and arranging audio clips.","patternToSong":"Create A/B/C pattern variations on the Elektrons for verse/hook/bridge. Trigger or record them in order to form the full arrangement in the MPC.","performanceCapture":"Record live mutes, fills, and parameter tweaks as audio (and/or automation) into the MPC so spontaneous moments are kept."}}};
+
+const {SUBSTYLES, STAGES, COMPLETION_CHECKLIST, CATEGORY_LABELS, CREATIVE_OPTIONS, DEFAULT_DEVICES, DEFAULT_ROUTING} = DATA;
+const STAGE_MAP = Object.fromEntries(STAGES.map(s=>[s.id,s]));
+const SUBSTYLE_MAP = Object.fromEntries(SUBSTYLES.map(s=>[s.id,s]));
+const CATEGORIES = Object.keys(CATEGORY_LABELS);
+const DEVICE_META = {
+  mpc:{short:"MPC",full:"MPC Live III",color:"var(--mpc)"},
+  rytm:{short:"Rytm",full:"Analog Rytm MKII",color:"var(--rytm)"},
+  a4:{short:"A4",full:"Analog Four MKII",color:"var(--a4)"},
+};
+const DEVICE_NAMES = {mpc:"MPC Live III",rytm:"Analog Rytm MKII",a4:"Analog Four MKII",any:"any device"};
+const STAGE_ORDER = ["setup","tempo-groove","reference","drums","bass","harmony","hooks","texture","effects","arrangement","automation","transition","mixprep","export","review"];
+
+/* ============================== STORE ============================== */
+// Same key as the Next.js app — backups and data interchange freely.
+const KEY = "mpc-elektron-copilot:v1";
+function loadProjects(){ try{const r=localStorage.getItem(KEY);const p=r?JSON.parse(r):[];return Array.isArray(p)?p:[];}catch(e){return [];} }
+function saveProjects(ps){ try{localStorage.setItem(KEY,JSON.stringify(ps));}catch(e){} }
+let projects = loadProjects();
+function getProject(id){ return projects.find(p=>p.id===id); }
+function updateProject(id,fn){
+  projects = projects.map(p=>p.id===id?{...fn(p),updatedAt:Date.now()}:p);
+  saveProjects(projects);
+}
+function uid(pre){ return pre+"-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,8); }
+
+/* ============================== FACTORY ============================== */
+function checklist(labels){ return labels.map(l=>({id:uid("chk"),label:l,done:false})); }
+function createProject(input){
+  const style = SUBSTYLE_MAP[input.substyle];
+  const now = Date.now();
+  const bpm = input.bpm || Math.round((style.bpmRange[0]+style.bpmRange[1])/2);
+  const stageStates = {};
+  for(const st of STAGES) stageStates[st.id]={status:"not-started",notes:"",checklist:checklist(st.checklistTemplate.map(c=>c.label))};
+  const sec = (name,bars,devs,dd,ba,ma,en,notes)=>({id:uid("sec"),name,bars,activeDevices:devs,drumDensity:dd,bassActivity:ba,melodicActivity:ma,energy:en,notes});
+  return {
+    id:uid("proj"), title:input.title||"Untitled Beat", producerName:input.producerName||"",
+    substyle:input.substyle, bpm, swing:style.defaultSwing, grooveNotes:style.grooveFeel,
+    key:input.key||"C", scale:input.scale||"Minor", mood:input.mood||"", referenceTracks:input.referenceTracks||"",
+    hardwareSetupNotes:"MPC Live III = master clock + arranger. Rytm = drums. A4 = bass/melody. Edit on the Hardware page.",
+    midiRoutingNotes:"", audioRoutingNotes:"",
+    devices: JSON.parse(JSON.stringify(DEFAULT_DEVICES)),
+    routing: JSON.parse(JSON.stringify(DEFAULT_ROUTING)),
+    sections:[
+      sec("Intro",8,["mpc","a4"],"sparse","none","motif",2,"Strip back; introduce one element."),
+      sec("Verse 1",16,["mpc","rytm","a4"],"medium","groove","motif",3,"Drums + bass focus."),
+      sec("Hook",8,["mpc","rytm","a4"],"full","active","full",5,"Full arrangement, add chords/lead."),
+      sec("Verse 2",16,["mpc","rytm","a4"],"medium","groove","motif",3,"Variation on verse 1."),
+      sec("Outro",8,["mpc","a4"],"sparse","sustained","pad",2,"Filter down and fade."),
+    ],
+    decisions:[], stageStates,
+    completionChecklist:checklist(COMPLETION_CHECKLIST),
+    exportNotes:"", createdAt:now, updatedAt:now,
+  };
+}
+
+/* ============================== IDEA GENERATOR ============================== */
+function scoreOption(opt,project,savedTitles){
+  let s=1;
+  if(opt.styleFit==="all") s+=1;
+  else if(opt.styleFit.includes(project.substyle)) s+=3;
+  else s-=1;
+  const active=new Set(project.sections.flatMap(x=>x.activeDevices));
+  if(opt.recommendedDevice!=="any"&&active.has(opt.recommendedDevice)) s+=1;
+  const mood=(project.mood||"").toLowerCase();
+  if(mood){
+    const words=mood.split(/[\s,]+/).filter(w=>w.length>3);
+    const txt=(opt.title+" "+opt.description+" "+opt.whenToUse).toLowerCase();
+    if(words.some(w=>txt.includes(w))) s+=1.5;
+  }
+  const st=SUBSTYLE_MAP[project.substyle];
+  if(project.bpm>=st.bpmRange[0]&&project.bpm<=st.bpmRange[1]) s+=0.5;
+  if(savedTitles.has(opt.title)) s-=5;
+  return s+Math.random()*1.5;
+}
+function generateIdeas(project,{stageId,category,count=4}={}){
+  const saved=new Set(project.decisions.map(d=>d.text.split(" — ")[0]));
+  let pool=CREATIVE_OPTIONS;
+  if(category) pool=pool.filter(o=>o.category===category);
+  else if(stageId&&STAGE_MAP[stageId]){
+    const cats=new Set(STAGE_MAP[stageId].relatedCategories);
+    pool=pool.filter(o=>cats.has(o.category));
+  }
+  return pool.map(o=>({o,s:scoreOption(o,project,saved)}))
+    .sort((a,b)=>b.s-a.s).slice(0,count)
+    .map(({o})=>({
+      id:o.id+"-"+Math.random().toString(36).slice(2,7),
+      category:o.category, device:o.recommendedDevice, source:o,
+      text:`On the ${DEVICE_NAMES[o.recommendedDevice]||"your gear"}: ${o.title}. ${o.description} — fits ${SUBSTYLE_MAP[project.substyle].name}. ${o.whenToUse} Capture it into the MPC arrangement once it works.`,
+    }));
+}
+function nextStageId(p){
+  for(const id of STAGE_ORDER){ const st=p.stageStates[id]; if(!st||st.status!=="complete") return id; }
+  return "review";
+}
+
+/* ============================== UTILITIES ============================== */
+const $=sel=>document.querySelector(sel);
+function esc(s){ return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function toast(msg){
+  document.querySelectorAll(".toast").forEach(t=>t.remove());
+  const t=document.createElement("div"); t.className="toast"; t.textContent=msg;
+  document.body.appendChild(t); setTimeout(()=>t.remove(),2200);
+}
+function devChip(d,full){
+  if(d==="any") return `<span class="chip">Any device</span>`;
+  const m=DEVICE_META[d];
+  return `<span class="chip ${d}"><span class="dot" style="background:currentColor"></span>${full?m.full:m.short}</span>`;
+}
+function diffDot(level){
+  const map={beginner:["#34d399","Beginner"],intermediate:["#fbbf24","Intermediate"],advanced:["#fb7185","Advanced"]};
+  const [c,l]=map[level]||map.beginner;
+  return `<span class="tiny dim"><span class="dot" style="background:${c}"></span> ${l}</span>`;
+}
+function progressOf(p){
+  const done=STAGES.filter(s=>p.stageStates[s.id]&&p.stageStates[s.id].status==="complete").length;
+  return {done,pct:Math.round(done/STAGES.length*100)};
+}
+function saveDecision(projectId,{category,text,device,stageId}){
+  updateProject(projectId,p=>({...p,decisions:[{id:uid("dec"),category,text,device,stageId,createdAt:Date.now()},...p.decisions]}));
+  toast("Saved to project ✓");
+}
+// Persistent UI state per render-cycle
+const UI = { workflowStage:null, ideasCategory:"drums", arrangeSel:null, lastIdeas:{} };
+
+/* ============================== ROUTER ============================== */
+function route(){
+  const h=location.hash.replace(/^#\/?/,"");
+  const parts=h.split("/").filter(Boolean);
+  if(parts[0]==="new") return viewNew();
+  if(parts[0]==="settings") return viewSettings();
+  if(parts[0]==="projects"&&!parts[1]) return viewProjects();
+  if(parts[0]==="p"&&parts[1]){
+    const proj=getProject(parts[1]);
+    if(!proj) return viewNotFound();
+    const sub=parts[2]||"overview";
+    if(sub==="workflow") return viewWorkflow(proj,parts[3]);
+    if(sub==="arrangement") return viewArrangement(proj);
+    if(sub==="ideas") return viewIdeas(proj);
+    if(sub==="hardware") return viewHardware(proj);
+    return viewOverview(proj);
+  }
+  return viewHome();
+}
+window.addEventListener("hashchange",route);
+// Cross-tab sync: storage is re-read only when another tab writes it, so the
+// in-memory list stays authoritative even if localStorage is unavailable.
+window.addEventListener("storage",e=>{ if(e.key===KEY){ projects=loadProjects(); route(); } });
+
+/* ============================== SHELL ============================== */
+function shell(content,active){
+  const navItem=(href,icon,label,key)=>`<a href="#/${href}" class="${active===key?'active':''}"><span style="width:16px;text-align:center;color:var(--dim)">${icon}</span>${label}</a>`;
+  $("#app").innerHTML=`
+  <div class="layout">
+    <aside class="sidebar">
+      <a class="logo" href="#/"><span class="logo-badge">B</span><span><b>Beatsmith</b><small>MPC × Elektron copilot</small></span></a>
+      <nav class="nav">
+        ${navItem("","◎","Home","home")}
+        ${navItem("projects","🗂","Projects","projects")}
+        ${navItem("new","＋","New Project","new")}
+        ${navItem("settings","⚙","Settings","settings")}
+      </nav>
+      <div class="chain">
+        <h4>Signal chain</h4>
+        <div style="color:var(--mpc)"><span class="dot" style="background:var(--mpc)"></span>MPC — clock + arranger</div>
+        <div style="color:var(--rytm)"><span class="dot" style="background:var(--rytm)"></span>Rytm — drums</div>
+        <div style="color:var(--a4)"><span class="dot" style="background:var(--a4)"></span>A4 — bass / melody</div>
+      </div>
+      <p class="footnote">Standalone build · saved in this browser</p>
+    </aside>
+    <main><div class="wrap">${content}</div></main>
+  </div>`;
+}
+function projectTabs(p,active){
+  const t=(key,label)=>`<a href="#/p/${p.id}${key==='overview'?'':'/'+key}" class="${active===key?'active':''}">${label}</a>`;
+  return `<div class="tabs">${t("overview","Overview")}${t("workflow","Workflow")}${t("arrangement","Arrangement")}${t("ideas","Ideas")}${t("hardware","Hardware")}</div>`;
+}
+
+/* ============================== VIEWS ============================== */
+function viewHome(){
+  const recent=projects.slice(0,3);
+  shell(`
+    <div class="hero">
+      <p class="kicker">Hip-hop production copilot</p>
+      <h1 style="max-width:620px;font-size:28px">From idea to arrangement to mix prep — guided for your MPC + Elektron rig.</h1>
+      <p class="muted" style="max-width:600px">A structured, 15-stage workflow that tells you what to build next, what each device should do, and gives you endless context-aware creative options along the way.</p>
+      <div class="row" style="margin-top:18px">
+        <a class="btn p" href="#/new">＋ Start a new beat</a>
+        <a class="btn g" href="#/projects">View projects</a>
+      </div>
+      <div class="grid g3" style="margin-top:24px">
+        ${[["MPC Live III","Master clock · arranger · sampler","mpc"],["Analog Rytm MKII","Drums · percussion · fills","rytm"],["Analog Four MKII","Bass · chords · leads · texture","a4"]]
+          .map(([t,r,c])=>`<div class="card pad" style="border-color:color-mix(in srgb,var(--${c}) 35%,transparent)"><b style="color:var(--${c});font-size:13px">${t}</b><div class="tiny muted" style="margin-top:3px">${r}</div></div>`).join("")}
+      </div>
+    </div>
+    <div class="row spread" style="margin:34px 0 14px"><div><h2>Recent projects</h2><p class="small dim" style="margin:0">Pick up where you left off</p></div><a class="btn s xs" href="#/projects">All projects →</a></div>
+    ${recent.length===0
+      ? `<div class="card pad" style="text-align:center;padding:48px"><div style="font-size:34px">🎚️</div><h3>No projects yet</h3><p class="small muted">Create your first production and the copilot will guide you stage by stage.</p><a class="btn p" href="#/new">＋ Start a new beat</a></div>`
+      : `<div class="grid g3">${recent.map(projectCardHTML).join("")}</div>`}
+    <h2 style="margin:34px 0 4px">How it works</h2>
+    <p class="small dim" style="margin:0 0 14px">A complete production, broken into clear moves</p>
+    <div class="grid g3">
+      ${[["01","Set the target","Pick a substyle, BPM, key, and mood. The app seeds smart defaults for your rig."],
+         ["02","Work the stages","15 guided stages from drums to mix prep — each with per-device actions and idea cards."],
+         ["03","Arrange & finish","Build sections on the timeline, capture performances, and run the completion checklist."]]
+        .map(([n,t,b])=>`<div class="card pad"><div class="tiny" style="font-family:monospace;color:var(--accent-soft);margin-bottom:6px">${n}</div><h3>${t}</h3><p class="small muted" style="margin:0">${b}</p></div>`).join("")}
+    </div>`,"home");
+}
+
+function projectCardHTML(p){
+  const st=SUBSTYLE_MAP[p.substyle], {done,pct}=progressOf(p);
+  return `<a class="card pad hov" href="#/p/${p.id}" style="display:block">
+    <div class="row spread" style="margin-bottom:8px;align-items:flex-start">
+      <div style="min-width:0"><b style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(p.title)}</b>
+      <span class="tiny dim">${esc(p.producerName?p.producerName+" · ":"")}${st.name}</span></div>
+      <span class="chip on">${st.name}</span>
+    </div>
+    <div class="row tiny muted" style="gap:6px;margin-bottom:12px">
+      <span style="background:var(--ink-800);border-radius:6px;padding:3px 8px">${p.bpm} BPM</span>
+      <span style="background:var(--ink-800);border-radius:6px;padding:3px 8px">${esc(p.key)} ${esc(p.scale)}</span>
+      ${p.mood?`<span style="background:var(--ink-800);border-radius:6px;padding:3px 8px">${esc(p.mood)}</span>`:""}
+    </div>
+    <div class="row" style="gap:10px"><div class="bar" style="flex:1"><div style="width:${pct}%"></div></div><span class="tiny muted">${pct}%</span></div>
+    <div class="tiny" style="color:#4b5563;margin-top:5px">${done} / ${STAGES.length} stages · updated ${new Date(p.updatedAt).toLocaleDateString()}</div>
+  </a>`;
+}
+
+function viewProjects(){
+  shell(`
+    <div class="row spread" style="margin-bottom:16px">
+      <div><h2>Projects</h2><p class="small dim" style="margin:0">${projects.length} production${projects.length===1?"":"s"}</p></div>
+      <a class="btn p" href="#/new">＋ New project</a>
+    </div>
+    ${projects.length===0
+      ? `<div class="card pad" style="text-align:center;padding:48px"><div style="font-size:34px">🗂️</div><h3>No projects yet</h3><p class="small muted">Start your first beat and the copilot walks you from idea to mix prep.</p><a class="btn p" href="#/new">＋ Start a new beat</a></div>`
+      : `<div class="grid g3">${projects.map(projectCardHTML).join("")}</div>`}`,"projects");
+}
+
+function viewNew(){
+  shell(`
+    <div style="max-width:760px;margin:0 auto">
+      <h2>New production</h2><p class="small dim">Set the creative target. You can change anything later.</p>
+      <div class="card pad" style="margin-bottom:16px">
+        <div class="grid" style="grid-template-columns:1fr 1fr">
+          <div><label class="lbl">Title *</label><input class="in" id="f-title" placeholder="e.g. Midnight Dusty"></div>
+          <div><label class="lbl">Producer / artist</label><input class="in" id="f-producer" placeholder="Your name"></div>
+        </div>
+      </div>
+      <label class="lbl">Substyle *</label>
+      <div class="grid g3" id="style-grid" style="margin-bottom:16px">
+        ${SUBSTYLES.map(s=>`<button class="card pad hov style-pick" data-id="${s.id}" style="text-align:left;cursor:pointer;font:inherit;color:inherit">
+          <div class="row spread"><b style="font-size:13px">${s.name}</b><span class="tiny dim">${s.bpmRange[0]}–${s.bpmRange[1]}</span></div>
+          <p class="tiny muted" style="margin:4px 0 0">${s.blurb}</p></button>`).join("")}
+      </div>
+      <div id="style-info"></div>
+      <div class="card pad" style="margin-bottom:16px">
+        <div class="grid" style="grid-template-columns:1fr 1fr">
+          <div><label class="lbl">BPM</label><input class="in" id="f-bpm" type="number" placeholder="90"></div>
+          <div class="grid" style="grid-template-columns:1fr 1fr;gap:10px">
+            <div><label class="lbl">Key</label><input class="in" id="f-key" value="C"></div>
+            <div><label class="lbl">Scale</label><select class="in" id="f-scale"><option>Minor</option><option>Major</option><option>Dorian</option><option>Phrygian</option><option>Minor Pentatonic</option><option>Harmonic Minor</option></select></div>
+          </div>
+          <div><label class="lbl">Mood</label><input class="in" id="f-mood" placeholder="dark, nostalgic, aggressive…"></div>
+          <div><label class="lbl">Reference track(s)</label><input class="in" id="f-ref" placeholder="Artist – Track"></div>
+        </div>
+      </div>
+      <div class="row" style="justify-content:flex-end">
+        <a class="btn g" href="#/projects">Cancel</a>
+        <button class="btn p" id="f-create" disabled>Create & start workflow →</button>
+      </div>
+      <p class="tiny dim" style="text-align:right" id="f-hint">Add a title and pick a substyle to continue.</p>
+    </div>`,"new");
+
+  let chosen=null;
+  const refresh=()=>{
+    const ok=chosen&&$("#f-title").value.trim();
+    $("#f-create").disabled=!ok;
+    $("#f-hint").style.display=ok?"none":"block";
+  };
+  document.querySelectorAll(".style-pick").forEach(btn=>btn.addEventListener("click",()=>{
+    chosen=btn.dataset.id;
+    document.querySelectorAll(".style-pick").forEach(b=>{
+      b.style.borderColor=b.dataset.id===chosen?"rgba(167,139,250,.7)":"";
+      b.style.background=b.dataset.id===chosen?"rgba(167,139,250,.08)":"";
+    });
+    const s=SUBSTYLE_MAP[chosen];
+    if(!$("#f-bpm").value) $("#f-bpm").value=Math.round((s.bpmRange[0]+s.bpmRange[1])/2);
+    $("#style-info").innerHTML=`<div class="card pad" style="border-left:2px solid rgba(167,139,250,.5);margin-bottom:16px">
+      <b style="font-size:13px">${s.name}</b><p class="small muted" style="margin:3px 0 8px">${s.grooveFeel}</p>
+      <div class="row tiny muted" style="gap:6px"><span style="background:var(--ink-800);border-radius:6px;padding:3px 8px">BPM ${s.bpmRange[0]}–${s.bpmRange[1]}</span><span style="background:var(--ink-800);border-radius:6px;padding:3px 8px">Swing ~${s.defaultSwing}%</span></div></div>`;
+    refresh();
+  }));
+  $("#f-title").addEventListener("input",refresh);
+  $("#f-create").addEventListener("click",()=>{
+    const p=createProject({
+      title:$("#f-title").value.trim(), producerName:$("#f-producer").value.trim(),
+      substyle:chosen, bpm:Number($("#f-bpm").value)||undefined,
+      key:$("#f-key").value, scale:$("#f-scale").value,
+      mood:$("#f-mood").value.trim(), referenceTracks:$("#f-ref").value.trim(),
+    });
+    projects=[p,...projects]; saveProjects(projects);
+    location.hash=`#/p/${p.id}/workflow`;
+  });
+}
+
+function viewNotFound(){
+  shell(`<div class="card pad" style="text-align:center;padding:48px"><div style="font-size:30px">🤔</div>
+    <h3>Project not found</h3><p class="small muted">It may have been deleted, or this link is from another browser.</p>
+    <a class="btn p" href="#/projects">Back to projects</a></div>`,"projects");
+}
+
+/* ---------- OVERVIEW ---------- */
+function viewOverview(p){
+  const style=SUBSTYLE_MAP[p.substyle], {done,pct}=progressOf(p);
+  const nid=nextStageId(p), next=STAGE_MAP[nid];
+  const ccDone=p.completionChecklist.filter(c=>c.done).length;
+  const ccPct=Math.round(ccDone/p.completionChecklist.length*100);
+  shell(`
+    ${projectTabs(p,"overview")}
+    <div class="row spread" style="align-items:flex-start;margin-bottom:18px">
+      <div><h1>${esc(p.title)}</h1>
+      <p class="small muted" style="margin:0">${esc(p.producerName?p.producerName+" · ":"")}${style.name} · ${p.bpm} BPM · ${esc(p.key)} ${esc(p.scale)}${p.mood?" · "+esc(p.mood):""}</p></div>
+      <button class="btn s xs danger" id="del-proj">Delete project</button>
+    </div>
+    <div class="grid" style="grid-template-columns:2fr 1fr;margin-bottom:14px">
+      <div class="card pad">
+        <div class="row spread" style="margin-bottom:8px"><span class="sec-h" style="margin:0">Production progress</span><span class="tiny muted">${done} / ${STAGES.length} stages</span></div>
+        <div class="bar" style="margin-bottom:14px"><div style="width:${pct}%"></div></div>
+        <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:4px">
+          ${STAGES.map((s,i)=>{const st=(p.stageStates[s.id]||{}).status||"not-started";
+            return `<a href="#/p/${p.id}/workflow/${s.id}" class="row" style="gap:8px;padding:5px 8px;border-radius:8px;font-size:12px" onmouseover="this.style.background='var(--ink-800)'" onmouseout="this.style.background=''">
+              <span class="stage-num ${st==="complete"?"done":st==="in-progress"?"prog":""}" style="width:18px;height:18px">${st==="complete"?"✓":i+1}</span>
+              <span class="dim" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.name}</span></a>`;}).join("")}
+        </div>
+      </div>
+      <div class="card pad" style="border-color:rgba(167,139,250,.3);background:rgba(167,139,250,.04);display:flex;flex-direction:column">
+        <span class="kicker">Next recommended</span>
+        <b style="font-size:16px">${next.name}</b>
+        <p class="small muted" style="flex:1">${next.objective}</p>
+        <a class="btn p" href="#/p/${p.id}/workflow/${nid}">Continue →</a>
+      </div>
+    </div>
+    <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(180px,1fr));margin-bottom:18px">
+      ${[["workflow","🎚","Workflow"],["arrangement","📐","Arrangement"],["ideas","💡","Idea bank"],["hardware","🔌","Hardware"]]
+        .map(([k,i,l])=>`<a class="card pad hov row" style="gap:10px" href="#/p/${p.id}/${k}"><span style="font-size:19px">${i}</span><b style="font-size:13px">${l}</b></a>`).join("")}
+    </div>
+    <div class="grid" style="grid-template-columns:2fr 1fr">
+      <div>
+        <div class="card pad" style="margin-bottom:14px">
+          <div class="sec-h">Project details</div>
+          <div class="grid" style="grid-template-columns:1fr 1fr">
+            ${textField(p,"title","Title")}${textField(p,"producerName","Producer / artist")}
+            <div><label class="lbl">Substyle</label><select class="in" data-pfield="substyle">${SUBSTYLES.map(s=>`<option value="${s.id}" ${s.id===p.substyle?"selected":""}>${s.name}</option>`).join("")}</select></div>
+            ${numField(p,"bpm",`BPM (${style.bpmRange[0]}–${style.bpmRange[1]} typical)`)}
+            ${numField(p,"swing","Swing (%)")}
+            <div class="grid" style="grid-template-columns:1fr 1fr;gap:10px">${textField(p,"key","Key")}${textField(p,"scale","Scale")}</div>
+            ${textField(p,"mood","Mood")}
+          </div>
+        </div>
+        <div class="card pad">
+          <div class="sec-h">References & context</div>
+          ${areaField(p,"referenceTracks","Reference tracks",2)}
+          ${areaField(p,"grooveNotes","Swing / groove notes",2)}
+          ${areaField(p,"hardwareSetupNotes","Hardware setup notes",2)}
+          ${areaField(p,"exportNotes","Export / mix-master notes",2)}
+        </div>
+      </div>
+      <div>
+        <div class="card pad" style="margin-bottom:14px">
+          <div class="row spread" style="margin-bottom:8px"><span class="sec-h" style="margin:0">Song completion</span><span class="tiny muted">${ccPct}%</span></div>
+          <div class="bar" style="margin-bottom:12px"><div style="width:${ccPct}%"></div></div>
+          ${p.completionChecklist.map(c=>checkHTML(c,"cc")).join("")}
+          ${ccPct===100?`<p class="small" style="color:#6ee7b7;border:1px solid rgba(52,211,153,.4);background:rgba(52,211,153,.1);border-radius:9px;padding:8px 12px">🎉 Track complete — bounce it and start the next one.</p>`:""}
+        </div>
+        ${p.decisions.length?`<div class="card pad"><div class="sec-h">Saved decisions (${p.decisions.length})</div>
+          <div style="display:flex;flex-direction:column;gap:7px">${p.decisions.slice(0,8).map(d=>`<div class="decision">${esc(d.text)}</div>`).join("")}</div></div>`:""}
+      </div>
+    </div>`,"projects");
+
+  $("#del-proj").addEventListener("click",()=>{
+    if(confirm(`Delete "${p.title}"? This can't be undone.`)){
+      projects=projects.filter(x=>x.id!==p.id); saveProjects(projects);
+      location.hash="#/projects";
+    }
+  });
+  bindProjectFields(p.id);
+  bindChecks(p.id,"cc",(proj,cid)=>({...proj,completionChecklist:proj.completionChecklist.map(c=>c.id===cid?{...c,done:!c.done}:c)}));
+}
+function textField(p,key,label){ return `<div><label class="lbl">${label}</label><input class="in" data-pfield="${key}" value="${esc(p[key])}"></div>`; }
+function numField(p,key,label){ return `<div><label class="lbl">${label}</label><input class="in" type="number" data-pfield="${key}" data-num="1" value="${esc(p[key])}"></div>`; }
+function areaField(p,key,label,rows){ return `<div style="margin-bottom:10px"><label class="lbl">${label}</label><textarea class="in" rows="${rows}" data-pfield="${key}">${esc(p[key])}</textarea></div>`; }
+function bindProjectFields(id){
+  document.querySelectorAll("[data-pfield]").forEach(el=>el.addEventListener("change",()=>{
+    const v=el.dataset.num?Number(el.value)||0:el.value;
+    updateProject(id,p=>({...p,[el.dataset.pfield]:v}));
+    if(el.dataset.pfield==="substyle") route();
+  }));
+}
+function checkHTML(c,group){
+  return `<label class="check ${c.done?"done":""}"><input type="checkbox" data-check="${group}" data-cid="${c.id}" ${c.done?"checked":""} style="margin-top:2px"><span style="font-size:13px">${esc(c.label)}</span></label>`;
+}
+function bindChecks(projectId,group,updater){
+  document.querySelectorAll(`[data-check="${group}"]`).forEach(el=>el.addEventListener("change",()=>{
+    updateProject(projectId,p=>updater(p,el.dataset.cid));
+    route();
+  }));
+}
+
+/* ---------- WORKFLOW ---------- */
+function viewWorkflow(p,stageParam){
+  const stageId=(stageParam&&STAGE_MAP[stageParam])?stageParam:(UI.workflowStage&&STAGE_MAP[UI.workflowStage]?UI.workflowStage:nextStageId(p));
+  UI.workflowStage=stageId;
+  const stage=STAGE_MAP[stageId], state=p.stageStates[stageId];
+  const style=SUBSTYLE_MAP[p.substyle];
+  const idx=STAGES.findIndex(s=>s.id===stageId);
+  const savedTitles=new Set(p.decisions.map(d=>d.text.split(" — ")[0]));
+
+  // curated options: stage categories, style-fit first
+  const cats=new Set(stage.relatedCategories);
+  const inStage=CREATIVE_OPTIONS.filter(o=>cats.has(o.category));
+  const onStyle=inStage.filter(o=>o.styleFit==="all"||o.styleFit.includes(p.substyle));
+  const curated=[...onStyle,...inStage.filter(o=>!onStyle.includes(o))].slice(0,6);
+
+  // ideas: keep last generation per stage so re-render doesn't reshuffle
+  const ideaKey=p.id+":"+stageId;
+  if(!UI.lastIdeas[ideaKey]) UI.lastIdeas[ideaKey]=generateIdeas(p,{stageId});
+  const ideas=UI.lastIdeas[ideaKey];
+
+  const stageDecisions=p.decisions.filter(d=>d.stageId===stageId);
+  const statusChip=state.status==="complete"?`<span class="chip ok">Complete</span>`:state.status==="in-progress"?`<span class="chip warn">In progress</span>`:`<span class="chip">Not started</span>`;
+
+  shell(`
+    ${projectTabs(p,"workflow")}
+    <div class="two-col">
+      <div>
+        <div class="sec-h" style="padding:0 4px">Production stages</div>
+        <div class="card" style="padding:8px;position:sticky;top:20px">
+          ${STAGES.map((s,i)=>{const st=(p.stageStates[s.id]||{}).status||"not-started";
+            return `<button class="stage-item ${s.id===stageId?"active":""}" data-goto="${s.id}">
+              <span class="stage-num ${st==="complete"?"done":st==="in-progress"?"prog":s.id===stageId?"cur":""}">${st==="complete"?"✓":i+1}</span>
+              <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.name}</span></button>`;}).join("")}
+        </div>
+      </div>
+      <div>
+        <div class="card pad" style="margin-bottom:18px">
+          <div class="row spread" style="margin-bottom:8px">
+            <div class="row"><span class="chip on">${style.name}</span>${statusChip}</div>
+            ${state.status!=="complete"
+              ?`<button class="btn p xs" id="st-complete">✓ Mark stage complete</button>`
+              :`<button class="btn g xs" id="st-reopen">Reopen stage</button>`}
+          </div>
+          <h2 style="font-size:19px">${stage.name}</h2>
+          <p class="small muted" style="max-width:560px;margin:4px 0 0">${stage.objective}</p>
+        </div>
+
+        <div class="sec-h">What to do on each device</div>
+        <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(230px,1fr));margin-bottom:18px">
+          ${["mpc","rytm","a4"].map(d=>`<div class="card guide" style="border-left-color:${DEVICE_META[d].color}">
+            <div class="row" style="gap:7px;margin-bottom:5px"><span class="dot" style="background:${DEVICE_META[d].color}"></span><b style="font-size:13px;color:${DEVICE_META[d].color}">${DEVICE_META[d].full}</b></div>
+            <p class="small" style="margin:0;color:#cbd2dd">${stage.guidance[d]}</p></div>`).join("")}
+        </div>
+
+        <div class="card pad" style="margin-bottom:18px">
+          <div class="sec-h">Creative prompts</div>
+          <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px">
+            ${stage.creativePrompts.map(pr=>`<div class="prompt"><b>→</b>${pr}</div>`).join("")}
+          </div>
+        </div>
+
+        <div class="grid" style="grid-template-columns:1fr 1fr;align-items:start">
+          <div>
+            <div class="sec-h">Creative options for this stage</div>
+            <div style="display:flex;flex-direction:column;gap:12px">
+              ${curated.map(o=>optionCardHTML(o,savedTitles.has(o.title))).join("")}
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:18px">
+            <div>
+              <div class="sec-h">Generate fresh ideas</div>
+              ${ideaPanelHTML(p,ideas)}
+            </div>
+            <div class="card pad">
+              <div class="sec-h">Stage checklist</div>
+              ${state.checklist.map(c=>checkHTML(c,"st")).join("")}
+              <p class="tiny dim" style="margin:6px 0 0;padding:0 8px">${state.checklist.filter(c=>c.done).length} / ${state.checklist.length} complete</p>
+            </div>
+            <div class="card pad">
+              <label class="lbl">Stage notes</label>
+              <textarea class="in" rows="4" id="st-notes" placeholder="Decisions, ideas, reminders for this stage…">${esc(state.notes)}</textarea>
+            </div>
+          </div>
+        </div>
+
+        ${stageDecisions.length?`<div class="card pad" style="margin-top:18px"><div class="sec-h">Saved decisions (${stageDecisions.length})</div>
+          <div style="display:flex;flex-direction:column;gap:7px">${stageDecisions.map(d=>`<div class="decision"><span class="chip" style="flex-shrink:0">${CATEGORY_LABELS[d.category]}</span><span>${esc(d.text)}</span></div>`).join("")}</div></div>`:""}
+
+        <div class="row spread" style="margin-top:20px">
+          <button class="btn g" ${idx<=0?"disabled":""} data-goto="${idx>0?STAGES[idx-1].id:""}">← ${idx>0?STAGES[idx-1].name:"Previous"}</button>
+          <button class="btn p" ${idx>=STAGES.length-1?"disabled":""} data-goto="${idx<STAGES.length-1?STAGES[idx+1].id:""}">${idx<STAGES.length-1?STAGES[idx+1].name:"Last stage"} →</button>
+        </div>
+      </div>
+    </div>`,"projects");
+
+  document.querySelectorAll("[data-goto]").forEach(el=>el.addEventListener("click",()=>{
+    if(el.dataset.goto){ UI.workflowStage=el.dataset.goto; location.hash=`#/p/${p.id}/workflow/${el.dataset.goto}`; }
+  }));
+  const setStatus=s=>{updateProject(p.id,proj=>({...proj,stageStates:{...proj.stageStates,[stageId]:{...proj.stageStates[stageId],status:s}}}));route();};
+  const elC=$("#st-complete"); if(elC) elC.addEventListener("click",()=>setStatus("complete"));
+  const elR=$("#st-reopen"); if(elR) elR.addEventListener("click",()=>setStatus("in-progress"));
+  bindChecks(p.id,"st",(proj,cid)=>{
+    const st=proj.stageStates[stageId];
+    const cl=st.checklist.map(c=>c.id===cid?{...c,done:!c.done}:c);
+    const status=st.status==="complete"?"complete":(cl.some(c=>c.done)?"in-progress":st.status);
+    return {...proj,stageStates:{...proj.stageStates,[stageId]:{...st,checklist:cl,status}}};
+  });
+  $("#st-notes").addEventListener("change",e=>{
+    updateProject(p.id,proj=>({...proj,stageStates:{...proj.stageStates,[stageId]:{...proj.stageStates[stageId],notes:e.target.value}}}));
+  });
+  bindOptionCards(p.id,stageId);
+  bindIdeaPanel(p,{stageId,ideaKey});
+}
+
+function optionCardHTML(o,saved){
+  return `<div class="card opt-card hov" data-opt="${o.id}">
+    <div class="row spread" style="align-items:flex-start;margin-bottom:6px"><b style="font-size:13px;line-height:1.35">${o.title}</b>${devChip(o.recommendedDevice)}</div>
+    <p class="small muted" style="margin:0 0 8px">${o.description}</p>
+    <div class="row" style="gap:14px;margin-bottom:8px">${diffDot(o.difficulty)}<span class="tiny dim">${o.whenToUse}</span></div>
+    <div class="opt-detail" style="display:none;background:var(--ink-900);border:1px solid var(--ink-700);border-radius:9px;padding:11px;margin-bottom:8px">
+      <div class="tiny" style="font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--dim)">How to do it</div>
+      <ol class="steps">${o.implementationSteps.map(s=>`<li>${s}</li>`).join("")}</ol>
+      <div class="tiny" style="font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--dim);margin-top:8px">Variations to try</div>
+      <ul class="vars">${o.variationIdeas.map(s=>`<li>${s}</li>`).join("")}</ul>
+    </div>
+    <div class="row spread" style="margin-top:auto">
+      <button class="btn s xs opt-toggle">Show steps</button>
+      <button class="btn ${saved?"g":"p"} xs opt-save" ${saved?"disabled":""}>${saved?"✓ Saved":"Save to project"}</button>
+    </div>
+  </div>`;
+}
+function bindOptionCards(projectId,stageId){
+  document.querySelectorAll("[data-opt]").forEach(card=>{
+    const opt=CREATIVE_OPTIONS.find(o=>o.id===card.dataset.opt);
+    card.querySelector(".opt-toggle").addEventListener("click",e=>{
+      const d=card.querySelector(".opt-detail");
+      const open=d.style.display!=="none";
+      d.style.display=open?"none":"block";
+      e.target.textContent=open?"Show steps":"Hide steps";
+    });
+    const save=card.querySelector(".opt-save");
+    save.addEventListener("click",()=>{
+      saveDecision(projectId,{category:opt.category,text:`${opt.title} — ${opt.description}`,device:opt.recommendedDevice,stageId});
+      save.textContent="✓ Saved"; save.disabled=true; save.classList.remove("p"); save.classList.add("g");
+    });
+  });
+}
+function ideaPanelHTML(p,ideas,title){
+  return `<div class="card pad">
+    <div class="row spread" style="margin-bottom:10px">
+      <div><b style="font-size:13px">${title||"Idea generator"}</b>
+      <div class="tiny dim">Tailored to ${p.substyle.replace(/-/g," ")} · ${p.bpm} BPM${p.mood?" · "+esc(p.mood):""}</div></div>
+      <button class="btn g xs" id="idea-regen">↻ Generate more</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      ${ideas.map(i=>`<div style="background:var(--ink-900);border:1px solid var(--ink-700);border-radius:9px;padding:11px" data-idea="${i.id}">
+        <div class="row" style="gap:6px;margin-bottom:6px"><span class="chip">${CATEGORY_LABELS[i.category]}</span>${devChip(i.device)}</div>
+        <p class="small" style="margin:0;color:#cbd2dd">${i.text}</p>
+        <div style="text-align:right;margin-top:8px"><button class="btn p xs idea-save">Save idea</button></div>
+      </div>`).join("")}
+    </div>
+  </div>`;
+}
+function bindIdeaPanel(p,{stageId,category,ideaKey}){
+  const regen=$("#idea-regen");
+  if(regen) regen.addEventListener("click",()=>{
+    UI.lastIdeas[ideaKey]=generateIdeas(p,{stageId,category,count:stageId?4:5});
+    route();
+  });
+  document.querySelectorAll("[data-idea]").forEach(el=>{
+    const idea=UI.lastIdeas[ideaKey].find(i=>i.id===el.dataset.idea);
+    el.querySelector(".idea-save").addEventListener("click",e=>{
+      saveDecision(p.id,{category:idea.category,text:idea.text,device:idea.device,stageId});
+      e.target.textContent="✓ Saved to project"; e.target.disabled=true;
+      e.target.classList.remove("p"); e.target.classList.add("s");
+    });
+  });
+}
+
+/* ---------- ARRANGEMENT ---------- */
+function viewArrangement(p){
+  const style=SUBSTYLE_MAP[p.substyle];
+  const total=p.sections.reduce((a,s)=>a+s.bars,0)||1;
+  if(UI.arrangeSel&&!p.sections.find(s=>s.id===UI.arrangeSel)) UI.arrangeSel=null;
+  const presets=["Intro","Verse","Pre-Hook","Hook","Bridge","Breakdown","Drop","Outro"];
+  shell(`
+    ${projectTabs(p,"arrangement")}
+    <h2>Arrangement</h2><p class="small dim" style="margin:0 0 16px">Build the song structure · ${style.arrangement}</p>
+    <div class="card pad" style="margin-bottom:14px">
+      <div class="row spread tiny dim" style="margin-bottom:8px"><span>Timeline</span><span>${total} bars total</span></div>
+      <div class="tl">
+        ${p.sections.map(s=>`<button class="e${s.energy} ${s.id===UI.arrangeSel?"sel":""}" style="width:${(s.bars/total*100).toFixed(2)}%" data-selsec="${s.id}" title="${esc(s.name)} · ${s.bars} bars · energy ${s.energy}">
+          <b>${esc(s.name)}</b><i>${s.bars} bars</i>
+          <div class="row" style="gap:3px;margin-top:3px">${s.activeDevices.map(d=>`<span class="dot" style="background:rgba(255,255,255,.85);width:5px;height:5px"></span>`).join("")}</div>
+        </button>`).join("")}
+      </div>
+      <div class="row tiny dim" style="gap:10px;margin-top:8px"><span>Energy:</span>
+        ${["1 low","2","3","4","5 peak"].map((l,i)=>`<span class="row" style="gap:4px"><span style="width:9px;height:9px;border-radius:2px" class="e${i+1}"></span>${l}</span>`).join("")}
+      </div>
+    </div>
+    <div class="card pad" style="margin-bottom:14px">
+      <div class="sec-h">Add a section</div>
+      <div class="row">${presets.map(n=>`<button class="btn g xs" data-addsec="${n}">＋ ${n}</button>`).join("")}</div>
+    </div>
+    ${p.sections.length===0
+      ?`<div class="card pad small muted" style="text-align:center;padding:40px">No sections yet — add one above.</div>`
+      :`<div class="grid g2">${p.sections.map(sectionEditorHTML).join("")}</div>`}`,"projects");
+
+  document.querySelectorAll("[data-selsec]").forEach(el=>el.addEventListener("click",()=>{UI.arrangeSel=el.dataset.selsec;route();}));
+  document.querySelectorAll("[data-addsec]").forEach(el=>el.addEventListener("click",()=>{
+    const name=el.dataset.addsec, isHook=/hook|drop|chorus/i.test(name);
+    const s={id:uid("sec"),name,bars:isHook?8:16,activeDevices:["mpc","rytm","a4"],
+      drumDensity:isHook?"full":"medium",bassActivity:isHook?"active":"groove",
+      melodicActivity:isHook?"full":"motif",energy:isHook?5:3,notes:""};
+    updateProject(p.id,proj=>({...proj,sections:[...proj.sections,s]}));
+    UI.arrangeSel=s.id; route();
+  }));
+  // field bindings
+  document.querySelectorAll("[data-sfield]").forEach(el=>el.addEventListener("change",()=>{
+    const [sid,key]=el.dataset.sfield.split("|");
+    let v=el.value;
+    if(key==="bars") v=Math.max(1,Number(v)||1);
+    if(key==="energy") v=Number(v);
+    updateProject(p.id,proj=>({...proj,sections:proj.sections.map(s=>s.id===sid?{...s,[key]:v}:s)}));
+    if(key!=="notes") route();
+  }));
+  document.querySelectorAll("[data-sdev]").forEach(el=>el.addEventListener("click",()=>{
+    const [sid,d]=el.dataset.sdev.split("|");
+    updateProject(p.id,proj=>({...proj,sections:proj.sections.map(s=>{
+      if(s.id!==sid) return s;
+      const has=s.activeDevices.includes(d);
+      return {...s,activeDevices:has?s.activeDevices.filter(x=>x!==d):[...s.activeDevices,d]};
+    })}));
+    route();
+  }));
+  document.querySelectorAll("[data-sdel]").forEach(el=>el.addEventListener("click",()=>{
+    updateProject(p.id,proj=>({...proj,sections:proj.sections.filter(s=>s.id!==el.dataset.sdel)}));
+    route();
+  }));
+}
+function sectionEditorHTML(s){
+  const sel=(key,opts,val)=>`<select class="in" data-sfield="${s.id}|${key}" style="text-transform:capitalize">${opts.map(o=>`<option ${o===val?"selected":""}>${o}</option>`).join("")}</select>`;
+  return `<div class="card pad">
+    <div class="row spread" style="margin-bottom:10px">
+      <input class="in" style="flex:1;font-weight:600" value="${esc(s.name)}" data-sfield="${s.id}|name">
+      <button class="btn s xs danger" data-sdel="${s.id}">Remove</button>
+    </div>
+    <div class="grid" style="grid-template-columns:1fr 1fr">
+      <div><label class="lbl">Bars</label><input class="in" type="number" min="1" max="64" value="${s.bars}" data-sfield="${s.id}|bars"></div>
+      <div><label class="lbl">Energy (${s.energy}/5)</label><input type="range" min="1" max="5" value="${s.energy}" data-sfield="${s.id}|energy"></div>
+    </div>
+    <div style="margin-top:10px"><label class="lbl">Active devices</label>
+      <div class="row">${["mpc","rytm","a4"].map(d=>`<button class="chip click ${s.activeDevices.includes(d)?d:""}" data-sdev="${s.id}|${d}">${DEVICE_META[d].short}</button>`).join("")}</div>
+    </div>
+    <div class="grid" style="grid-template-columns:1fr 1fr 1fr;margin-top:10px">
+      <div><label class="lbl">Drums</label>${sel("drumDensity",["none","sparse","medium","busy","full"],s.drumDensity)}</div>
+      <div><label class="lbl">Bass</label>${sel("bassActivity",["none","sustained","groove","active"],s.bassActivity)}</div>
+      <div><label class="lbl">Melody</label>${sel("melodicActivity",["none","pad","motif","lead","full"],s.melodicActivity)}</div>
+    </div>
+    <div style="margin-top:10px"><label class="lbl">Mutes / fills / drops / automation</label>
+      <textarea class="in" rows="2" data-sfield="${s.id}|notes" placeholder="e.g. mute hats first 4 bars, snare-roll into hook…">${esc(s.notes)}</textarea></div>
+  </div>`;
+}
+
+/* ---------- IDEAS ---------- */
+function viewIdeas(p){
+  const cat=UI.ideasCategory;
+  const ideaKey=p.id+":cat:"+cat;
+  if(!UI.lastIdeas[ideaKey]) UI.lastIdeas[ideaKey]=generateIdeas(p,{category:cat,count:5});
+  const ideas=UI.lastIdeas[ideaKey];
+  const savedTitles=new Set(p.decisions.map(d=>d.text.split(" — ")[0]));
+  const options=CREATIVE_OPTIONS.filter(o=>o.category===cat);
+  const onStyle=options.filter(o=>o.styleFit==="all"||o.styleFit.includes(p.substyle));
+  const ordered=[...onStyle,...options.filter(o=>!onStyle.includes(o))];
+  shell(`
+    ${projectTabs(p,"ideas")}
+    <h2>Idea bank</h2><p class="small dim" style="margin:0 0 16px">Generate context-aware moves, or browse the full creative library by category</p>
+    ${ideaPanelHTML(p,ideas,`${CATEGORY_LABELS[cat]} — generated for this beat`)}
+    <div class="row" style="margin:16px 0">
+      ${CATEGORIES.map(c=>`<button class="chip click ${c===cat?"on":""}" data-cat="${c}">${CATEGORY_LABELS[c]}</button>`).join("")}
+    </div>
+    <p class="tiny dim">${ordered.length} options · ${onStyle.length} tuned for ${p.substyle.replace(/-/g," ")}</p>
+    <div class="grid g3">${ordered.map(o=>optionCardHTML(o,savedTitles.has(o.title))).join("")}</div>`,"projects");
+
+  document.querySelectorAll("[data-cat]").forEach(el=>el.addEventListener("click",()=>{UI.ideasCategory=el.dataset.cat;route();}));
+  bindIdeaPanel(p,{category:cat,ideaKey});
+  bindOptionCards(p.id,undefined);
+}
+
+/* ---------- HARDWARE ---------- */
+function viewHardware(p){
+  const fields=[["clock","Master clock & transport"],["midiOut","MIDI out → Elektrons"],["audio","Audio recording / monitoring"],
+    ["arrangementCapture","Arrangement capture strategy"],["patternToSong","Pattern-to-song workflow"],["performanceCapture","Performance capture workflow"]];
+  shell(`
+    ${projectTabs(p,"hardware")}
+    <h2>Hardware workflow planner</h2><p class="small dim" style="margin:0 0 16px">MPC Live III as master clock & arranger · Rytm + A4 as synced instruments</p>
+    <div class="notice" style="margin-bottom:16px"><b>Editable assumptions.</b> These are sensible defaults for an MPC-as-master setup — not verified hardware specs. Confirm against your own MIDI config and adjust freely.</div>
+    <div class="card pad" style="margin-bottom:16px">
+      <div class="sec-h">Clock & sync</div>
+      <label class="check"><input type="checkbox" id="hw-clock" ${p.routing.sendsMidiClock?"checked":""} style="margin-top:2px"><span style="font-size:13px">MPC Live III sends MIDI clock + start/stop (Rytm & A4 receive)</span></label>
+    </div>
+    <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr));margin-bottom:16px">
+      ${p.devices.map(d=>`<div class="card pad" style="border-top:2px solid ${DEVICE_META[d.id].color}">
+        <div class="row" style="gap:7px;margin-bottom:10px"><span class="dot" style="background:${DEVICE_META[d.id].color}"></span><b style="font-size:13px;color:${DEVICE_META[d.id].color}">${d.name}</b></div>
+        <label class="lbl">Role</label><textarea class="in" rows="2" data-dfield="${d.id}|role" style="margin-bottom:10px">${esc(d.role)}</textarea>
+        <div class="grid" style="grid-template-columns:1fr 1fr;margin-bottom:10px">
+          <div><label class="lbl">MIDI channel</label><input class="in" value="${esc(d.midiChannel)}" data-dfield="${d.id}|midiChannel"></div>
+          <div><label class="lbl">Clock role</label><select class="in" data-dfield="${d.id}|clockRole">${["master","receives","internal","off"].map(c=>`<option ${c===d.clockRole?"selected":""}>${c}</option>`).join("")}</select></div>
+        </div>
+        <label class="lbl">Audio routing</label><textarea class="in" rows="2" data-dfield="${d.id}|audioRoutingNotes" style="margin-bottom:10px">${esc(d.audioRoutingNotes)}</textarea>
+        <div class="lbl">Preferred use cases</div>
+        <div class="row" style="gap:5px;margin-bottom:10px">${d.preferredUseCases.map(u=>`<span class="chip">${esc(u)}</span>`).join("")}</div>
+        <label class="lbl">Your notes</label><textarea class="in" rows="2" data-dfield="${d.id}|userNotes" placeholder="Patch names, kit, CV outs, quirks…">${esc(d.userNotes)}</textarea>
+      </div>`).join("")}
+    </div>
+    <div class="card pad">
+      <div class="sec-h">Routing & workflow strategy</div>
+      <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(320px,1fr))">
+        ${fields.map(([k,l])=>`<div><label class="lbl">${l}</label><textarea class="in" rows="3" data-rfield="${k}">${esc(p.routing.notes[k])}</textarea></div>`).join("")}
+      </div>
+    </div>`,"projects");
+
+  $("#hw-clock").addEventListener("change",()=>{
+    updateProject(p.id,proj=>({...proj,routing:{...proj.routing,sendsMidiClock:!proj.routing.sendsMidiClock}}));
+  });
+  document.querySelectorAll("[data-dfield]").forEach(el=>el.addEventListener("change",()=>{
+    const [did,key]=el.dataset.dfield.split("|");
+    updateProject(p.id,proj=>({...proj,devices:proj.devices.map(d=>d.id===did?{...d,[key]:el.value}:d)}));
+  }));
+  document.querySelectorAll("[data-rfield]").forEach(el=>el.addEventListener("change",()=>{
+    updateProject(p.id,proj=>({...proj,routing:{...proj.routing,notes:{...proj.routing.notes,[el.dataset.rfield]:el.value}}}));
+  }));
+}
+
+/* ---------- SETTINGS ---------- */
+function viewSettings(){
+  shell(`
+    <h2>Settings</h2><p class="small dim" style="margin:0 0 18px">Local-first — all data lives in this browser</p>
+    <div class="card pad" style="margin-bottom:16px">
+      <div class="sec-h">Your data</div>
+      <p class="small muted">${projects.length} project${projects.length===1?"":"s"} stored locally. Export a backup or move projects between browsers/devices. Backups are interchangeable with the full web app.</p>
+      <div class="row">
+        <button class="btn g" id="exp" ${projects.length===0?"disabled":""}>↓ Export backup (JSON)</button>
+        <button class="btn g" id="imp-btn">↑ Import backup</button>
+        <input type="file" id="imp" accept="application/json" style="display:none">
+        <button class="btn s danger" id="clear">Clear all data</button>
+      </div>
+      <p class="small" id="msg" style="color:var(--accent-soft)"></p>
+    </div>
+    <div class="card pad" style="margin-bottom:16px">
+      <div class="sec-h">Default rig assumptions</div>
+      <p class="small muted">These seed every new project and are fully editable per-project on the Hardware page. They're sensible defaults — not verified hardware specs.</p>
+      <div class="grid g3">
+        ${DEFAULT_DEVICES.map(d=>`<div style="background:var(--ink-900);border:1px solid var(--ink-700);border-radius:10px;padding:13px">
+          <div style="margin-bottom:7px">${devChip(d.id,true)}</div>
+          <p class="tiny muted" style="margin:0 0 8px">${d.role}</p>
+          <div class="row spread tiny dim"><span>MIDI</span><span class="muted" style="text-align:right">${esc(d.midiChannel)}</span></div>
+          <div class="row spread tiny dim"><span>Clock</span><span class="muted" style="text-transform:capitalize">${d.clockRole}</span></div>
+        </div>`).join("")}
+      </div>
+      <div class="small muted" style="background:var(--ink-900);border:1px solid var(--ink-700);border-radius:10px;padding:13px;margin-top:12px">
+        <b style="color:var(--text)">Clock default:</b> ${DEFAULT_ROUTING.notes.clock}
+      </div>
+    </div>
+    <div class="card pad small muted">
+      <div class="sec-h">About</div>
+      <p style="margin:0"><b style="color:var(--text)">Beatsmith (standalone build)</b> is a single-file, local-first hip-hop production copilot for the Akai MPC Live III, Elektron Analog Rytm MKII, and Analog Four MKII. No install, no account, no cloud — open this file in any browser and your projects stay in that browser's storage.</p>
+    </div>`,"settings");
+
+  $("#exp").addEventListener("click",()=>{
+    const blob=new Blob([JSON.stringify(projects,null,2)],{type:"application/json"});
+    const a=document.createElement("a");
+    a.href=URL.createObjectURL(blob);
+    a.download=`beatsmith-projects-${new Date().toISOString().slice(0,10)}.json`;
+    a.click(); URL.revokeObjectURL(a.href);
+  });
+  $("#imp-btn").addEventListener("click",()=>$("#imp").click());
+  $("#imp").addEventListener("change",e=>{
+    const f=e.target.files[0]; if(!f) return;
+    const r=new FileReader();
+    r.onload=()=>{
+      try{
+        const data=JSON.parse(String(r.result));
+        const arr=Array.isArray(data)?data:[data];
+        const existing=new Set(projects.map(x=>x.id));
+        let added=0;
+        for(const pr of arr){ if(pr&&pr.id&&!existing.has(pr.id)){projects=[pr,...projects];added++;} }
+        saveProjects(projects);
+        $("#msg").textContent=`Imported ${added} project${added===1?"":"s"}.`;
+      }catch(err){ $("#msg").textContent="Could not parse that file."; }
+    };
+    r.readAsText(f);
+  });
+  $("#clear").addEventListener("click",()=>{
+    if(confirm("Delete ALL projects from this browser? This cannot be undone.")){
+      localStorage.removeItem(KEY); projects=[]; route();
+    }
+  });
+}
+
+/* ============================== BOOT ============================== */
+route();
+</script>
+</body>
+</html>

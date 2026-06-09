@@ -57,12 +57,25 @@ npm run dev      # http://localhost:3000
 Other scripts:
 
 ```bash
-npm run build    # production build (also type-checks)
-npm run start    # serve the production build
-npm run lint     # eslint
+npm run build             # production build (also type-checks)
+npm run start             # serve the production build
+npm run lint              # eslint
+npm run build:standalone  # regenerate the single-file standalone app
 ```
 
 > Requires Node 18+ (developed on Node 22).
+
+### 📄 Standalone single-file version (no install needed)
+
+Don't want to run Node? **`standalone/beatsmith.html`** is the entire app in one
+file — open it by double-clicking it in any modern browser. It works fully
+offline, persists projects to that browser's localStorage under the **same key
+as the web app**, and its JSON backups are interchangeable with the web app's.
+
+It is generated from the same TypeScript seed data (`lib/`) by
+`scripts/build-standalone.mjs`; after changing substyles/stages/options, run
+`npm run build:standalone` to refresh it. The UI shell lives in
+`standalone/template.html`.
 
 ---
 
