@@ -19,20 +19,47 @@ which device, and what creative options could work?"_
   → Hooks → Texture → Effects → Arrangement → Performance Automation → Transitions → Mix Prep →
   Export → Final Review. Each stage gives you an objective, **per-device guidance** (MPC / Rytm / A4),
   creative option cards, an idea generator, a checklist, notes, and a "mark complete" control.
-- **11 hip-hop substyles** with BPM ranges, groove feel, drum/bass/harmony characteristics, effects
+- **16 hip-hop substyles** with BPM ranges, groove feel, drum/bass/harmony characteristics, effects
   & arrangement tendencies, and device-specific suggestions (boom bap, trap, lo-fi, experimental,
   dark cinematic, west coast, east coast, southern bounce, grimy underground, soul sample-based,
-  minimalist drum-machine).
-- **Rule-based creative idea generator** — context-aware ideas based on substyle, stage, BPM, mood,
-  active devices, and what you've already saved. Hit **Generate more** for endless variations.
-- **166 seed creative options** (15+ per category) across drums, bass, chords, melody, samples,
+  minimalist drum-machine, industrial/noise, jazz-influenced, synth-heavy modern, abstract
+  instrumental, Memphis-inspired dark trap).
+- **Rule-based creative idea generator** — context-aware ideas weighted by substyle, stage, BPM,
+  mood, active devices, **underused categories**, **unfinished stages**, desired energy/complexity,
+  and a **"problem state"** (Stuck Mode). Avoids repeating recent ideas. Hit **Generate more** anytime.
+- **251 seed creative options** (20–36 per category) across drums, bass, chords, melody, samples,
   textures, effects, transitions, arrangement, performance automation, and mix prep — each with
   recommended device, difficulty, style fit, when-to-use, implementation steps, and variations.
-- **Arrangement builder** — a visual energy-coded timeline plus per-section editors for bars, active
-  devices, drum/bass/melody activity, energy, and notes on mutes/fills/drops/automation.
+- **Arrangement builder** — energy-coded timeline, per-section editors, **8 genre arrangement
+  templates** (64-bar instrumental, 96-bar beat-tape, 120-bar rap, trap, boom-bap, cinematic, …),
+  and automatic **arrangement-health warnings** (flat energy, verse/hook with no contrast).
 - **Hardware workflow planner** — editable device roles, MIDI channels, clock roles, audio routing,
   and pattern-to-song / performance-capture strategies. Everything is an **editable assumption**.
 - **Song completion checklist** + **local persistence** + **JSON backup export/import**.
+
+### 🧠 Expanded copilot (standalone build)
+
+The single-file `standalone/beatsmith.html` goes deeper than the original MVP, adding a
+**reference-grounded knowledge layer** transformed from the MPC/Elektron manuals and a set of
+music-production cheat sheets (modal-source notes are cited on every card; no copyrighted excerpts):
+
+- **Command Center** — "next best move", quick-action idea buttons, device status, a current-bottleneck
+  selector, arrangement-health and at-a-glance stats, plus a per-genre **decision engine** (first move,
+  common mistake, per-device recipe, reference-listening checklist).
+- **⚡ Stuck Mode** — pick a problem ("my loop is boring", "hook is weak", …) + devices + energy +
+  complexity → 3 immediate actions, 3 device moves, 3 musical alternatives, an arrangement move, a
+  mix move, a "finish the track" constraint, and tailored generated ideas.
+- **Knowledge Library** — 29 transformed guidance cards (steps, variations, caution, source note),
+  filterable by device and category.
+- **Hardware Playbooks** — step-by-step, checkable workflows for MPC-as-master, Rytm drums, A4 synth,
+  and complete song capture.
+- **Composition Intelligence** — scales/formulas (auto-computed for your key), key-by-mood, triads &
+  seventh chords, key-independent progression templates, advanced-harmony moves (simple vs advanced),
+  bassline extraction, and counterpoint safety rules.
+- **Groove Lab** — 16-step pattern grids per substyle with safe/bouncy/experimental variants, swing &
+  microtiming notes, retrig/polyrhythm concepts, and a groove-troubleshooting list.
+- **Song Health Check** — weighted diagnostic with a score, missing areas, and a recommended next move.
+- **Reference Track Analysis** + **Practice/Learning Mode** — reusable checklists/prompts saved per project.
 
 ---
 
@@ -101,14 +128,37 @@ lib/
   types.ts                   # strong domain types (Project, Device, ProductionStage,
                              #   CreativeOption, ArrangementSection, HipHopSubstyle,
                              #   ChecklistItem, HardwareRoutingProfile, …)
-  substyles.ts               # 11 substyle definitions
-  creativeOptions.ts         # 166 seed creative options (15+ per category)
+  substyles.ts               # 16 substyle definitions
+  creativeOptions.ts         # 251 seed creative options (20–36 per category)
   stages.ts                  # the 15 production stages + completion checklist
   devices.ts                 # default (editable) device profiles + routing
+  knowledge.ts               # expanded knowledge layer for the standalone build:
+                             #   KNOWLEDGE, PLAYBOOKS, GENRE_PROFILES, COMPOSITION, GROOVE,
+                             #   STUCK_PRESETS, ARRANGEMENT_TEMPLATES, HEALTH_RULES,
+                             #   REFERENCE_CHECKLIST, PRACTICE_PROMPTS, SOURCE_NOTES
   ideaGenerator.ts           # rule-based, context-aware idea scoring/generation
   projectFactory.ts          # creates a fully-seeded project
   store.tsx                  # localStorage-backed React context (CRUD + cross-tab sync)
+
+standalone/
+  template.html              # vanilla HTML/CSS/JS UI shell for the single-file build
+  beatsmith.html             # generated single-file app (open directly in a browser)
+scripts/
+  build-standalone.mjs       # compiles lib/* and injects data into the template
 ```
+
+> **Two front-ends, one data source.** The Next.js app (`app/`) is the original MVP. The expanded
+> copilot features (Stuck Mode, Knowledge Library, Playbooks, Composition, Groove Lab, Song Health,
+> Reference, Practice, genre decision engine) live in the **standalone build**, which embeds the same
+> `lib/` seed data plus `lib/knowledge.ts`. Both persist to the **same `localStorage` key**, so JSON
+> backups move freely between them.
+
+### Saved-project migration
+
+The standalone build stamps projects with a `schema` version and runs `migrateProject()` on load,
+adding any new fields (`knowledge`, `stuckHistory`, `healthResult`, `referenceAnalysis`,
+`practiceAnswers`) with safe defaults. **Older v1 projects — and projects created by the Next.js app —
+load without data loss.**
 
 **Data flow:** `StoreProvider` (in `app/layout.tsx`) hydrates projects from `localStorage`, exposes
 CRUD via `useStore()`, and re-persists on every change. Pages resolve a project through
@@ -134,6 +184,16 @@ project on the **Hardware** page.
 
 If your routing differs (USB vs DIN, different channels, A4 as clock, etc.), just edit it — the
 guidance text and planner are data, not assumptions baked into code.
+
+### Reference material & source discipline
+
+Guidance is **transformed and summarized**, never quoted from copyrighted manuals/cheat sheets. Each
+knowledge card, playbook, and theory section carries a short **"Source concept:"** note naming the
+originating manual/section (e.g. _MPC Live III User Guide — Track Mute Mode_; _Analog Rytm MKII — note
+vs lock trigs_; _Analog Four MKII — oscillators/filters/LFOs_; _Chord Progressions Cheat Sheet —
+Roman numerals_). Device button-paths are phrased as **"suggested workflow / configure on your
+device"** — the app does not claim to perform hardware actions, and uncertain specifics are framed as
+editable assumptions to confirm against your own gear.
 
 ---
 

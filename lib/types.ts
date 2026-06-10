@@ -36,7 +36,12 @@ export type SubstyleId =
   | "southern-bounce"
   | "grimy-underground"
   | "soul-sample"
-  | "minimalist-drum-machine";
+  | "minimalist-drum-machine"
+  | "industrial-noise"
+  | "jazz-hop"
+  | "synth-modern"
+  | "abstract-instrumental"
+  | "memphis-dark";
 
 /** Editable device profile. Defaults are suggestions, not verified facts. */
 export interface Device {

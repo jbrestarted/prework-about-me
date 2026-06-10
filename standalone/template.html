@@ -139,6 +139,43 @@
   @media(max-width:920px){.two-col{grid-template-columns:1fr}}
   .opt-card{display:flex;flex-direction:column;padding:15px}
   .decision{background:var(--ink-900);border-radius:9px;padding:9px 12px;font-size:13px;color:#cbd2dd;display:flex;gap:8px;align-items:flex-start}
+
+  /* ---- expansion components ---- */
+  :root{--good:#34d399;--theory:#a78bfa;}
+  .chip.theory{border-color:rgba(167,139,250,.4);background:rgba(167,139,250,.12);color:var(--accent-soft)}
+  .chip.good{border-color:rgba(52,211,153,.4);background:rgba(52,211,153,.12);color:#6ee7b7}
+  .src{margin-top:8px;font-size:11px;color:#7c8597;background:var(--ink-900);border:1px dashed var(--ink-600);border-radius:8px;padding:7px 10px;line-height:1.45}
+  .tabs a.warn-tab{color:#fcd34d}
+  .kb{display:flex;flex-direction:column;padding:14px}
+  .kb h3{font-size:13px;margin:0}
+  .acc{border:1px solid var(--ink-700);border-radius:10px;background:var(--ink-850);margin-bottom:10px;overflow:hidden}
+  .acc>summary{cursor:pointer;padding:13px 15px;list-style:none;display:flex;align-items:center;gap:10px;font-size:13px;font-weight:500}
+  .acc>summary::-webkit-details-marker{display:none}
+  .acc>summary:hover{background:var(--ink-800)}
+  .acc[open]>summary{border-bottom:1px solid var(--ink-700)}
+  .acc .body{padding:14px 16px}
+  .qa{display:flex;flex-direction:column;gap:7px}
+  .qa button{justify-content:flex-start;width:100%}
+  .stat{background:var(--ink-900);border:1px solid var(--ink-700);border-radius:10px;padding:12px 14px}
+  .stat b{font-size:22px;display:block;line-height:1.1}
+  .stat span{font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.05em}
+  .seg{display:inline-flex;border:1px solid var(--ink-700);border-radius:9px;overflow:hidden;flex-wrap:wrap}
+  .seg button{border:none;background:var(--ink-900);color:var(--muted);font:inherit;font-size:12px;padding:7px 12px;cursor:pointer;border-right:1px solid var(--ink-700)}
+  .seg button:last-child{border-right:none}
+  .seg button.on{background:var(--accent);color:var(--ink-950);font-weight:600}
+  .grid16{display:grid;grid-template-columns:repeat(16,1fr);gap:3px}
+  .gstep{aspect-ratio:1;border-radius:4px;background:var(--ink-800);border:1px solid var(--ink-700);display:grid;place-items:center;font-size:9px;color:transparent}
+  .gstep.beat{border-color:var(--ink-500)}
+  .gk{background:var(--mpc);border-color:var(--mpc)}
+  .gs{background:var(--rytm);border-color:var(--rytm)}
+  .gh{background:var(--a4);border-color:var(--a4)}
+  .gp{background:var(--accent);border-color:var(--accent)}
+  .glabel{font-size:11px;color:var(--muted);width:48px;flex-shrink:0;text-transform:uppercase;letter-spacing:.04em}
+  .health-ring{--p:0;width:96px;height:96px;border-radius:50%;display:grid;place-items:center;
+    background:conic-gradient(var(--good) calc(var(--p)*1%), var(--ink-700) 0)}
+  .health-ring>div{width:76px;height:76px;border-radius:50%;background:var(--ink-850);display:grid;place-items:center;text-align:center}
+  .nbm{border:1px solid rgba(167,139,250,.35);background:linear-gradient(135deg,rgba(167,139,250,.12),rgba(92,200,255,.06));border-radius:12px;padding:16px}
+  .devstat{border-top:2px solid;border-radius:10px;background:var(--ink-850);border-left:1px solid var(--ink-700);border-right:1px solid var(--ink-700);border-bottom:1px solid var(--ink-700);padding:13px}
 </style>
 </head>
 <body>
@@ -147,8 +184,11 @@
 "use strict";
 /* ============================== SEED DATA ============================== */
 const DATA = /*__DATA__*/;
+const KB = /*__KNOWLEDGE__*/;
 
 const {SUBSTYLES, STAGES, COMPLETION_CHECKLIST, CATEGORY_LABELS, CREATIVE_OPTIONS, DEFAULT_DEVICES, DEFAULT_ROUTING} = DATA;
+const {KNOWLEDGE, KNOWLEDGE_CATEGORIES, PLAYBOOKS, GENRE_PROFILES, COMPOSITION, GROOVE, STUCK_PRESETS, ARRANGEMENT_TEMPLATES, HEALTH_RULES, REFERENCE_CHECKLIST, PRACTICE_PROMPTS, SOURCE_NOTES} = KB;
+const STUCK_MAP = Object.fromEntries(STUCK_PRESETS.map(s=>[s.id,s]));
 const STAGE_MAP = Object.fromEntries(STAGES.map(s=>[s.id,s]));
 const SUBSTYLE_MAP = Object.fromEntries(SUBSTYLES.map(s=>[s.id,s]));
 const CATEGORIES = Object.keys(CATEGORY_LABELS);
@@ -163,7 +203,25 @@ const STAGE_ORDER = ["setup","tempo-groove","reference","drums","bass","harmony"
 /* ============================== STORE ============================== */
 // Same key as the Next.js app — backups and data interchange freely.
 const KEY = "mpc-elektron-copilot:v1";
-function loadProjects(){ try{const r=localStorage.getItem(KEY);const p=r?JSON.parse(r):[];return Array.isArray(p)?p:[];}catch(e){return [];} }
+const SCHEMA = 2;
+// Migrate older saved projects forward without losing data. Every new field is
+// added with a safe default so v1 projects (and the Next.js web app's) keep working.
+function migrateProject(p){
+  if(!p || typeof p!=="object") return p;
+  p.schema = SCHEMA;
+  if(!p.knowledge) p.knowledge = { saved: [], playbookProgress: {}, arrangementTemplate: "" };
+  if(!Array.isArray(p.knowledge.saved)) p.knowledge.saved = [];
+  if(!p.knowledge.playbookProgress) p.knowledge.playbookProgress = {};
+  if(typeof p.knowledge.arrangementTemplate!=="string") p.knowledge.arrangementTemplate = "";
+  if(!Array.isArray(p.stuckHistory)) p.stuckHistory = [];
+  if(!p.healthResult) p.healthResult = null;
+  if(!Array.isArray(p.referenceAnalysis)) p.referenceAnalysis = [];
+  if(!p.practiceAnswers) p.practiceAnswers = {};
+  if(!Array.isArray(p.sections)) p.sections = [];
+  if(!Array.isArray(p.decisions)) p.decisions = [];
+  return p;
+}
+function loadProjects(){ try{const r=localStorage.getItem(KEY);const p=r?JSON.parse(r):[];return Array.isArray(p)?p.map(migrateProject):[];}catch(e){return [];} }
 function saveProjects(ps){ try{localStorage.setItem(KEY,JSON.stringify(ps));}catch(e){} }
 let projects = loadProjects();
 function getProject(id){ return projects.find(p=>p.id===id); }
@@ -200,44 +258,101 @@ function createProject(input){
     decisions:[], stageStates,
     completionChecklist:checklist(COMPLETION_CHECKLIST),
     exportNotes:"", createdAt:now, updatedAt:now,
+    schema:SCHEMA,
+    knowledge:{ saved:[], playbookProgress:{}, arrangementTemplate:"" },
+    stuckHistory:[], healthResult:null, referenceAnalysis:[], practiceAnswers:{},
   };
 }
 
 /* ============================== IDEA GENERATOR ============================== */
-function scoreOption(opt,project,savedTitles){
+// Categories that belong to not-yet-complete stages — used for the unfinished boost.
+function unfinishedCategories(project){
+  const set=new Set();
+  for(const st of STAGES){
+    const status=(project.stageStates[st.id]||{}).status;
+    if(status!=="complete") (st.relatedCategories||[]).forEach(c=>set.add(c));
+  }
+  return set;
+}
+// How many decisions already saved per category — underused categories get a boost.
+function savedCategoryCounts(project){
+  const c={};
+  for(const d of project.decisions) c[d.category]=(c[d.category]||0)+1;
+  return c;
+}
+const DIFF_FOR_COMPLEXITY={simple:"beginner",moderate:"intermediate",advanced:"advanced"};
+function scoreOption(opt,project,ctx){
   let s=1;
+  // genre match
   if(opt.styleFit==="all") s+=1;
   else if(opt.styleFit.includes(project.substyle)) s+=3;
   else s-=1;
+  // device match (devices active in the arrangement, plus an optional filter set)
   const active=new Set(project.sections.flatMap(x=>x.activeDevices));
   if(opt.recommendedDevice!=="any"&&active.has(opt.recommendedDevice)) s+=1;
+  if(ctx.devices&&ctx.devices.length){
+    if(opt.recommendedDevice==="any"||ctx.devices.includes(opt.recommendedDevice)) s+=1.5; else s-=2;
+  }
+  // mood match
   const mood=(project.mood||"").toLowerCase();
   if(mood){
     const words=mood.split(/[\s,]+/).filter(w=>w.length>3);
     const txt=(opt.title+" "+opt.description+" "+opt.whenToUse).toLowerCase();
     if(words.some(w=>txt.includes(w))) s+=1.5;
   }
+  // BPM in range
   const st=SUBSTYLE_MAP[project.substyle];
   if(project.bpm>=st.bpmRange[0]&&project.bpm<=st.bpmRange[1]) s+=0.5;
-  if(savedTitles.has(opt.title)) s-=5;
-  return s+Math.random()*1.5;
+  // underused-category boost + unfinished-stage boost
+  if(ctx.underused) s+=Math.max(0,1.5-(ctx.counts[opt.category]||0)*0.5);
+  if(ctx.unfinished&&ctx.unfinished.has(opt.category)) s+=1;
+  // complexity / desired energy (approximated via difficulty)
+  if(ctx.complexity&&opt.difficulty===DIFF_FOR_COMPLEXITY[ctx.complexity]) s+=1;
+  if(ctx.energy==="high"&&opt.difficulty==="advanced") s+=0.5;
+  if(ctx.energy==="low"&&opt.difficulty==="beginner") s+=0.5;
+  if(ctx.energy==="chaotic"&&(opt.styleFit==="all"?false:opt.styleFit.includes("experimental"))) s+=1;
+  // avoid repeats: saved + recently shown
+  if(ctx.savedTitles.has(opt.title)) s-=5;
+  if(ctx.recent&&ctx.recent.has(opt.id)) s-=3;
+  return s+Math.random()*1.6;
 }
-function generateIdeas(project,{stageId,category,count=4}={}){
-  const saved=new Set(project.decisions.map(d=>d.text.split(" — ")[0]));
+function generateIdeas(project,opts={}){
+  const {stageId,category,count=4,problemId,devices,energy,complexity}=opts;
+  const savedTitles=new Set(project.decisions.map(d=>d.text.split(" — ")[0]));
+  const ctx={
+    savedTitles, devices, energy, complexity,
+    counts:savedCategoryCounts(project), underused:true,
+    unfinished:unfinishedCategories(project), recent:UI.recentIdeaIds,
+  };
   let pool=CREATIVE_OPTIONS;
   if(category) pool=pool.filter(o=>o.category===category);
-  else if(stageId&&STAGE_MAP[stageId]){
+  else if(problemId&&STUCK_MAP[problemId]){
+    // bias the pool toward the stuck problem's likely categories
+    const probCats=PROBLEM_CATEGORIES[problemId];
+    if(probCats) pool=pool.filter(o=>probCats.includes(o.category));
+  } else if(stageId&&STAGE_MAP[stageId]){
     const cats=new Set(STAGE_MAP[stageId].relatedCategories);
     pool=pool.filter(o=>cats.has(o.category));
   }
-  return pool.map(o=>({o,s:scoreOption(o,project,saved)}))
-    .sort((a,b)=>b.s-a.s).slice(0,count)
-    .map(({o})=>({
-      id:o.id+"-"+Math.random().toString(36).slice(2,7),
-      category:o.category, device:o.recommendedDevice, source:o,
-      text:`On the ${DEVICE_NAMES[o.recommendedDevice]||"your gear"}: ${o.title}. ${o.description} — fits ${SUBSTYLE_MAP[project.substyle].name}. ${o.whenToUse} Capture it into the MPC arrangement once it works.`,
-    }));
+  const picked=pool.map(o=>({o,s:scoreOption(o,project,ctx)}))
+    .sort((a,b)=>b.s-a.s).slice(0,count).map(x=>x.o);
+  picked.forEach(o=>UI.recentIdeaIds.add(o.id));
+  if(UI.recentIdeaIds.size>60){ UI.recentIdeaIds=new Set([...UI.recentIdeaIds].slice(-40)); }
+  return picked.map(o=>({
+    id:o.id+"-"+Math.random().toString(36).slice(2,7),
+    category:o.category, device:o.recommendedDevice, source:o,
+    text:`On the ${DEVICE_NAMES[o.recommendedDevice]||"your gear"}: ${o.title}. ${o.description} — fits ${SUBSTYLE_MAP[project.substyle].name}. ${o.whenToUse} Capture it into the MPC arrangement once it works.`,
+  }));
 }
+// Maps a stuck problem to the creative-option categories most likely to help.
+const PROBLEM_CATEGORIES={
+  "stuck-drum":["drums"], "stuck-loop":["arrangement","samples","texture","automation"],
+  "stuck-hook":["melody","chords","samples"], "stuck-bass":["bass"],
+  "stuck-chop":["samples"], "stuck-contrast":["arrangement","melody","chords"],
+  "stuck-transition":["transition","effects"], "stuck-earcandy":["texture","effects"],
+  "stuck-darker":["chords","effects","melody","samples"], "stuck-bounce":["drums","bass"],
+  "stuck-finish":["arrangement","automation"], "stuck-mix":["mixprep","effects"],
+};
 function nextStageId(p){
   for(const id of STAGE_ORDER){ const st=p.stageStates[id]; if(!st||st.status!=="complete") return id; }
   return "review";
@@ -265,12 +380,69 @@ function progressOf(p){
   const done=STAGES.filter(s=>p.stageStates[s.id]&&p.stageStates[s.id].status==="complete").length;
   return {done,pct:Math.round(done/STAGES.length*100)};
 }
+// Infer whether each health rule is satisfied from project data + saved decisions.
+function evalHealthRule(p,id){
+  const dCats=new Set(p.decisions.map(d=>d.category));
+  const stageDone=sid=>(p.stageStates[sid]||{}).status==="complete";
+  const stageTouched=sid=>{const s=p.stageStates[sid]||{};return s.status==="complete"||s.status==="in-progress"||(s.checklist||[]).some(c=>c.done);};
+  const secs=p.sections||[];
+  switch(id){
+    case "mood": return !!(p.mood&&p.mood.trim());
+    case "bpm": return !!p.bpm;
+    case "key": return !!(p.key&&p.scale);
+    case "drums": return dCats.has("drums")||stageTouched("drums");
+    case "bass": return dCats.has("bass")||stageTouched("bass");
+    case "hook": return dCats.has("melody")||dCats.has("samples")||stageTouched("hooks");
+    case "contrast": {
+      const energies=new Set(secs.map(s=>s.energy));
+      return secs.length>=2&&energies.size>=2;
+    }
+    case "transitions": return dCats.has("transition")||stageTouched("transition")||secs.some(s=>(s.notes||"").trim());
+    case "movement": return secs.length>=3;
+    case "roles": return secs.some(s=>(s.activeDevices||[]).length>0);
+    case "overlap": return true; // informational — assume ok unless user notes otherwise
+    case "arrangement": return stageTouched("arrangement")||secs.length>=4;
+    case "reference": return !!(p.referenceTracks&&p.referenceTracks.trim())||(p.referenceAnalysis||[]).some(x=>x.done);
+    case "review": return stageDone("review")||!!(p.exportNotes&&p.exportNotes.trim());
+    default: return false;
+  }
+}
+function computeHealth(p){
+  let score=0,total=0;const missing=[];
+  for(const r of HEALTH_RULES){
+    total+=r.weight;
+    if(evalHealthRule(p,r.id)) score+=r.weight; else missing.push(r);
+  }
+  return {pct:Math.round(score/total*100), score, total, missing};
+}
+// Lightweight arrangement diagnostics for the Command Center + Arrangement view.
+function arrangementHealth(p){
+  const secs=p.sections||[]; const warns=[];
+  if(secs.length===0) warns.push("No sections yet — add some or apply a template.");
+  for(let i=1;i<secs.length;i++){
+    if(secs[i].energy===secs[i-1].energy && secs[i].drumDensity===secs[i-1].drumDensity)
+      warns.push(`"${secs[i-1].name}" → "${secs[i].name}" have the same energy & density — add contrast.`);
+  }
+  const hook=secs.find(s=>/hook|drop|chorus/i.test(s.name));
+  const verse=secs.find(s=>/verse|main/i.test(s.name));
+  if(hook&&verse){
+    const same=hook.drumDensity===verse.drumDensity&&hook.melodicActivity===verse.melodicActivity&&hook.energy===verse.energy;
+    if(same) warns.push("Hook and verse look identical — differentiate by at least two elements.");
+  }
+  const total=secs.reduce((a,s)=>a+(s.bars||0),0);
+  return {warns:warns.slice(0,4), total, count:secs.length};
+}
 function saveDecision(projectId,{category,text,device,stageId}){
   updateProject(projectId,p=>({...p,decisions:[{id:uid("dec"),category,text,device,stageId,createdAt:Date.now()},...p.decisions]}));
   toast("Saved to project ✓");
 }
 // Persistent UI state per render-cycle
-const UI = { workflowStage:null, ideasCategory:"drums", arrangeSel:null, lastIdeas:{} };
+const UI = {
+  workflowStage:null, ideasCategory:"drums", ideasProblem:"", arrangeSel:null, lastIdeas:{},
+  recentIdeaIds:new Set(), kbCategory:"all", kbDevice:"all", playbookOpen:null,
+  stuck:{problemId:"stuck-loop", energy:"medium", complexity:"moderate", devices:["mpc","rytm","a4"], result:null},
+  groovePattern:0, dashIdeas:null,
+};
 
 /* ============================== ROUTER ============================== */
 function route(){
@@ -287,6 +459,14 @@ function route(){
     if(sub==="arrangement") return viewArrangement(proj);
     if(sub==="ideas") return viewIdeas(proj);
     if(sub==="hardware") return viewHardware(proj);
+    if(sub==="stuck") return viewStuck(proj);
+    if(sub==="playbooks") return viewPlaybooks(proj);
+    if(sub==="composition") return viewComposition(proj);
+    if(sub==="groove") return viewGroove(proj);
+    if(sub==="health") return viewHealth(proj);
+    if(sub==="reference") return viewReference(proj);
+    if(sub==="practice") return viewPractice(proj);
+    if(sub==="knowledge") return viewKnowledge(proj);
     return viewOverview(proj);
   }
   return viewHome();
@@ -321,9 +501,28 @@ function shell(content,active){
   </div>`;
 }
 function projectTabs(p,active){
-  const t=(key,label)=>`<a href="#/p/${p.id}${key==='overview'?'':'/'+key}" class="${active===key?'active':''}">${label}</a>`;
-  return `<div class="tabs">${t("overview","Overview")}${t("workflow","Workflow")}${t("arrangement","Arrangement")}${t("ideas","Ideas")}${t("hardware","Hardware")}</div>`;
+  const t=(key,label,cls)=>`<a href="#/p/${p.id}${key==='overview'?'':'/'+key}" class="${active===key?'active':''} ${cls||''}">${label}</a>`;
+  return `<div class="tabs">
+    ${t("overview","◎ Command")}
+    ${t("workflow","Workflow")}
+    ${t("ideas","Ideas")}
+    ${t("stuck","⚡ Stuck")}
+    ${t("arrangement","Arrangement")}
+    ${t("composition","Composition")}
+    ${t("groove","Groove Lab")}
+    ${t("playbooks","Playbooks")}
+    ${t("hardware","Hardware")}
+    ${t("knowledge","Knowledge")}
+    ${t("health","Song Health")}
+    ${t("reference","Reference")}
+    ${t("practice","Practice")}
+  </div>`;
 }
+/* Shared small render helpers used across the new views */
+function sourceNote(text){ return `<div class="src">📎 ${esc(text)}</div>`; }
+function pill(text,cls){ return `<span class="chip ${cls||''}">${esc(text)}</span>`; }
+function deviceTag(d){ if(d==="all"||d==="any") return pill("All devices"); const m=DEVICE_META[d]; return `<span class="chip ${d}"><span class="dot" style="background:currentColor"></span>${m.full}</span>`; }
+function sectionTitle(t,sub){ return `<div class="row spread" style="align-items:flex-end;margin-bottom:14px"><div><h2>${t}</h2>${sub?`<p class="small dim" style="margin:0">${sub}</p>`:''}</div></div>`; }
 
 /* ============================== VIEWS ============================== */
 function viewHome(){
@@ -464,6 +663,15 @@ function viewOverview(p){
   const nid=nextStageId(p), next=STAGE_MAP[nid];
   const ccDone=p.completionChecklist.filter(c=>c.done).length;
   const ccPct=Math.round(ccDone/p.completionChecklist.length*100);
+  const health=computeHealth(p);
+  const ah=arrangementHealth(p);
+  const optionCounts={};for(const o of CREATIVE_OPTIONS)optionCounts[o.category]=(optionCounts[o.category]||0)+1;
+  // Next best move = first failing health rule's musical fix, else the next stage.
+  const bottleneck=health.missing[0];
+  const quickActions=[
+    ["drums","🥁 Drum move"],["bass","🔊 Bass move"],["melody","🎤 Hook move"],
+    ["transition","🔀 Transition"],["arrangement","📐 Arrangement"],["mixprep","🎛 Mix-prep"],
+  ];
   shell(`
     ${projectTabs(p,"overview")}
     <div class="row spread" style="align-items:flex-start;margin-bottom:18px">
@@ -471,6 +679,96 @@ function viewOverview(p){
       <p class="small muted" style="margin:0">${esc(p.producerName?p.producerName+" · ":"")}${style.name} · ${p.bpm} BPM · ${esc(p.key)} ${esc(p.scale)}${p.mood?" · "+esc(p.mood):""}</p></div>
       <button class="btn s xs danger" id="del-proj">Delete project</button>
     </div>
+
+    <!-- COMMAND CENTER -->
+    <div class="grid" style="grid-template-columns:1.4fr 1fr;margin-bottom:14px">
+      <div class="nbm">
+        <span class="kicker">Next best move</span>
+        ${bottleneck
+          ? `<b style="font-size:16px">Resolve: ${esc(bottleneck.label)}</b>
+             <p class="small muted" style="margin:4px 0 8px">Musical: ${esc(bottleneck.fixMusical)}<br>Device: ${esc(bottleneck.fixDevice)}</p>`
+          : `<b style="font-size:16px">${esc(next.name)}</b>
+             <p class="small muted" style="margin:4px 0 8px">${esc(next.objective)}</p>`}
+        <div class="row">
+          <a class="btn p xs" href="#/p/${p.id}/workflow/${nid}">Open stage →</a>
+          <a class="btn g xs" href="#/p/${p.id}/stuck">⚡ I'm stuck</a>
+          <a class="btn g xs" href="#/p/${p.id}/health">Song health: ${health.pct}%</a>
+        </div>
+      </div>
+      <div class="card pad">
+        <div class="sec-h">Quick actions</div>
+        <div class="grid" style="grid-template-columns:1fr 1fr;gap:6px">
+          ${quickActions.map(([cat,label])=>`<button class="btn g xs qa-btn" data-qa="${cat}" style="justify-content:flex-start">${label}</button>`).join("")}
+        </div>
+        <p class="tiny dim" style="margin:8px 0 0">Generates a context-aware idea you can save to the project.</p>
+      </div>
+    </div>
+    <div id="dash-idea"></div>
+
+    <!-- DEVICE STATUS + BOTTLENECK -->
+    <div class="grid g3" style="margin-bottom:14px">
+      ${p.devices.map(d=>{
+        const inUse=(p.sections||[]).some(s=>(s.activeDevices||[]).includes(d.id));
+        return `<div class="devstat" style="border-top-color:${DEVICE_META[d.id].color}">
+          <div class="row spread"><b style="font-size:13px;color:${DEVICE_META[d.id].color}">${DEVICE_META[d.id].short}</b>
+            ${inUse?`<span class="chip good">active</span>`:`<span class="chip">idle</span>`}</div>
+          <div class="tiny muted" style="margin:5px 0 2px;line-height:1.4">${esc(d.role)}</div>
+          <div class="tiny dim">MIDI ${esc(d.midiChannel)} · clock: ${esc(d.clockRole)}</div>
+        </div>`;}).join("")}
+    </div>
+    <div class="card pad" style="margin-bottom:14px">
+      <div class="row spread" style="margin-bottom:8px"><span class="sec-h" style="margin:0">Current bottleneck</span>
+        <a class="tiny" style="color:var(--accent-soft)" href="#/p/${p.id}/health">full song health →</a></div>
+      <div class="row">
+        <select class="in" id="bottleneck-sel" style="max-width:340px">
+          ${HEALTH_RULES.map(r=>`<option value="${r.id}" ${bottleneck&&bottleneck.id===r.id?"selected":""}>${evalHealthRule(p,r.id)?"✓":"○"} ${esc(r.label)}</option>`).join("")}
+        </select>
+        <button class="btn g xs" id="bottleneck-go">Get a move →</button>
+      </div>
+      <div id="bottleneck-out"></div>
+    </div>
+
+    <!-- GENRE DECISION ENGINE -->
+    ${(()=>{const gp=GENRE_PROFILES[p.substyle];if(!gp)return"";
+      const row=(label,val,color)=>`<div style="padding:6px 0;border-bottom:1px solid var(--ink-800)"><div class="tiny" style="text-transform:uppercase;letter-spacing:.05em;color:${color||'var(--dim)'}">${label}</div><div class="small" style="color:#cbd2dd">${esc(val)}</div></div>`;
+      return `<details class="acc" style="margin-bottom:14px"><summary><b style="font-size:13px">🎯 ${esc(style.name)} recipe</b><span class="tiny dim" style="margin-left:auto">genre decision engine</span></summary>
+        <div class="body">
+          <div class="card pad" style="background:rgba(167,139,250,.06);border-color:rgba(167,139,250,.3);margin-bottom:10px">
+            <div class="tiny" style="text-transform:uppercase;letter-spacing:.05em;color:var(--accent-soft)">First move</div>
+            <div class="small" style="color:#fff">${esc(gp.firstMove)}</div>
+            <div class="tiny" style="text-transform:uppercase;letter-spacing:.05em;color:#fcd34d;margin-top:8px">Common mistake to avoid</div>
+            <div class="small" style="color:#fde68a">${esc(gp.commonMistake)}</div>
+          </div>
+          <div class="grid g2">
+            <div>${row("Groove & swing",gp.swing)}${row("Drum density",gp.drumDensity)}${row("Kick / snare / clap / hat",gp.kickSnareClapHat)}${row("Effects palette",gp.effects)}${row("Arrangement",gp.arrangement)}${row("Transitions",gp.transitions)}</div>
+            <div>${row("On the Rytm",gp.rytm,"var(--rytm)")}${row("MPC sampling",gp.mpcSampling,"var(--mpc)")}${row("A4 bass",gp.a4Bass,"var(--a4)")}${row("A4 chords / lead",gp.a4ChordLead,"var(--a4)")}</div>
+          </div>
+          <div class="sec-h" style="margin-top:12px">Reference-track listening checklist</div>
+          <div class="row">${gp.referenceListening.map(r=>`<span class="chip">${esc(r)}</span>`).join("")}</div>
+          ${sourceNote("Source concept: genre-specific production tendencies; reference/ghost-track listening (borrow the concept, not the audio).")}
+        </div></details>`;})()}
+
+    <!-- ARRANGEMENT HEALTH + STATS -->
+    <div class="grid" style="grid-template-columns:1fr 1fr;margin-bottom:18px">
+      <div class="card pad">
+        <div class="sec-h">Arrangement health</div>
+        <div class="row" style="gap:10px;margin-bottom:8px"><span class="chip">${ah.count} sections</span><span class="chip">${ah.total} bars</span></div>
+        ${ah.warns.length
+          ? ah.warns.map(w=>`<div class="prompt" style="color:#fcd34d;background:rgba(251,191,36,.06);margin-bottom:6px"><b>!</b>${esc(w)}</div>`).join("")
+          : `<p class="small" style="color:#6ee7b7">No issues detected — energy and contrast look healthy.</p>`}
+        <a class="btn s xs" href="#/p/${p.id}/arrangement" style="margin-top:4px">Open arrangement →</a>
+      </div>
+      <div class="card pad">
+        <div class="sec-h">At a glance</div>
+        <div class="grid" style="grid-template-columns:1fr 1fr;gap:8px">
+          <div class="stat"><b>${health.pct}%</b><span>Song health</span></div>
+          <div class="stat"><b>${p.decisions.length}</b><span>Saved decisions</span></div>
+          <div class="stat"><b>${done}/${STAGES.length}</b><span>Stages done</span></div>
+          <div class="stat"><b>${CREATIVE_OPTIONS.length}</b><span>Creative options</span></div>
+        </div>
+      </div>
+    </div>
+
     <div class="grid" style="grid-template-columns:2fr 1fr;margin-bottom:14px">
       <div class="card pad">
         <div class="row spread" style="margin-bottom:8px"><span class="sec-h" style="margin:0">Production progress</span><span class="tiny muted">${done} / ${STAGES.length} stages</span></div>
@@ -488,10 +786,6 @@ function viewOverview(p){
         <p class="small muted" style="flex:1">${next.objective}</p>
         <a class="btn p" href="#/p/${p.id}/workflow/${nid}">Continue →</a>
       </div>
-    </div>
-    <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(180px,1fr));margin-bottom:18px">
-      ${[["workflow","🎚","Workflow"],["arrangement","📐","Arrangement"],["ideas","💡","Idea bank"],["hardware","🔌","Hardware"]]
-        .map(([k,i,l])=>`<a class="card pad hov row" style="gap:10px" href="#/p/${p.id}/${k}"><span style="font-size:19px">${i}</span><b style="font-size:13px">${l}</b></a>`).join("")}
     </div>
     <div class="grid" style="grid-template-columns:2fr 1fr">
       <div>
@@ -534,6 +828,38 @@ function viewOverview(p){
   });
   bindProjectFields(p.id);
   bindChecks(p.id,"cc",(proj,cid)=>({...proj,completionChecklist:proj.completionChecklist.map(c=>c.id===cid?{...c,done:!c.done}:c)}));
+
+  // Quick-action idea generation (renders into #dash-idea without full reload)
+  function renderDashIdea(category){
+    const idea=generateIdeas(getProject(p.id),{category,count:1})[0];
+    if(!idea) return;
+    const el=$("#dash-idea");
+    el.innerHTML=`<div class="card pad" style="margin-bottom:14px;border-color:rgba(167,139,250,.35)">
+      <div class="row spread" style="margin-bottom:6px"><div class="row" style="gap:6px">${pill(CATEGORY_LABELS[idea.category])}${devChip(idea.device)}</div>
+        <button class="btn s xs" id="dash-more">↻ Another</button></div>
+      <p class="small" style="margin:0;color:#cbd2dd">${esc(idea.text)}</p>
+      <div style="text-align:right;margin-top:8px"><button class="btn p xs" id="dash-save">Save to project</button></div></div>`;
+    $("#dash-more").addEventListener("click",()=>renderDashIdea(category));
+    $("#dash-save").addEventListener("click",e=>{
+      saveDecision(p.id,{category:idea.category,text:idea.text,device:idea.device});
+      e.target.textContent="✓ Saved"; e.target.disabled=true;
+    });
+    if(el.scrollIntoView) el.scrollIntoView({behavior:"smooth",block:"nearest"});
+  }
+  document.querySelectorAll(".qa-btn").forEach(b=>b.addEventListener("click",()=>renderDashIdea(b.dataset.qa)));
+
+  // Bottleneck → targeted advice from the matching health rule
+  $("#bottleneck-go").addEventListener("click",()=>{
+    const rule=HEALTH_RULES.find(r=>r.id===$("#bottleneck-sel").value);
+    if(!rule) return;
+    $("#bottleneck-out").innerHTML=`<div class="card pad" style="margin-top:10px;background:var(--ink-900)">
+      <b style="font-size:13px">${esc(rule.label)} ${evalHealthRule(p,rule.id)?'<span class="chip good">looks ok</span>':'<span class="chip warn">needs work</span>'}</b>
+      <div class="grid g3" style="margin-top:8px;gap:8px">
+        <div class="prompt"><b>🎛</b>${esc(rule.fixDevice)}</div>
+        <div class="prompt"><b>🎵</b>${esc(rule.fixMusical)}</div>
+        <div class="prompt"><b>📐</b>${esc(rule.fixArrangement)}</div>
+      </div></div>`;
+  });
 }
 function textField(p,key,label){ return `<div><label class="lbl">${label}</label><input class="in" data-pfield="${key}" value="${esc(p[key])}"></div>`; }
 function numField(p,key,label){ return `<div><label class="lbl">${label}</label><input class="in" type="number" data-pfield="${key}" data-num="1" value="${esc(p[key])}"></div>`; }
@@ -718,10 +1044,10 @@ function ideaPanelHTML(p,ideas,title){
     </div>
   </div>`;
 }
-function bindIdeaPanel(p,{stageId,category,ideaKey}){
+function bindIdeaPanel(p,{stageId,category,problemId,ideaKey}){
   const regen=$("#idea-regen");
   if(regen) regen.addEventListener("click",()=>{
-    UI.lastIdeas[ideaKey]=generateIdeas(p,{stageId,category,count:stageId?4:5});
+    UI.lastIdeas[ideaKey]=generateIdeas(p,{stageId,category,problemId,count:(stageId||problemId)?5:5});
     route();
   });
   document.querySelectorAll("[data-idea]").forEach(el=>{
@@ -740,11 +1066,18 @@ function viewArrangement(p){
   const total=p.sections.reduce((a,s)=>a+s.bars,0)||1;
   if(UI.arrangeSel&&!p.sections.find(s=>s.id===UI.arrangeSel)) UI.arrangeSel=null;
   const presets=["Intro","Verse","Pre-Hook","Hook","Bridge","Breakdown","Drop","Outro"];
+  const ah=arrangementHealth(p);
+  // Templates relevant to this substyle first.
+  const tpls=[...ARRANGEMENT_TEMPLATES].sort((a,b)=>{
+    const af=a.genres==="all"?0:(a.genres.includes(p.substyle)?2:0);
+    const bf=b.genres==="all"?0:(b.genres.includes(p.substyle)?2:0);
+    return bf-af;
+  });
   shell(`
     ${projectTabs(p,"arrangement")}
     <h2>Arrangement</h2><p class="small dim" style="margin:0 0 16px">Build the song structure · ${style.arrangement}</p>
     <div class="card pad" style="margin-bottom:14px">
-      <div class="row spread tiny dim" style="margin-bottom:8px"><span>Timeline</span><span>${total} bars total</span></div>
+      <div class="row spread tiny dim" style="margin-bottom:8px"><span>Timeline · energy curve</span><span>${total} bars total</span></div>
       <div class="tl">
         ${p.sections.map(s=>`<button class="e${s.energy} ${s.id===UI.arrangeSel?"sel":""}" style="width:${(s.bars/total*100).toFixed(2)}%" data-selsec="${s.id}" title="${esc(s.name)} · ${s.bars} bars · energy ${s.energy}">
           <b>${esc(s.name)}</b><i>${s.bars} bars</i>
@@ -754,15 +1087,31 @@ function viewArrangement(p){
       <div class="row tiny dim" style="gap:10px;margin-top:8px"><span>Energy:</span>
         ${["1 low","2","3","4","5 peak"].map((l,i)=>`<span class="row" style="gap:4px"><span style="width:9px;height:9px;border-radius:2px" class="e${i+1}"></span>${l}</span>`).join("")}
       </div>
+      ${ah.warns.length?`<div style="margin-top:10px">${ah.warns.map(w=>`<div class="prompt" style="color:#fcd34d;background:rgba(251,191,36,.06);margin-bottom:6px"><b>!</b>${esc(w)}</div>`).join("")}</div>`
+        :`<p class="tiny" style="color:#6ee7b7;margin:10px 0 0">✓ Energy & contrast look healthy.</p>`}
     </div>
     <div class="card pad" style="margin-bottom:14px">
-      <div class="sec-h">Add a section</div>
+      <div class="sec-h">Apply an arrangement template</div>
+      <p class="tiny dim" style="margin:0 0 8px">Replaces the current sections with a genre-appropriate structure you can then edit.</p>
+      <div class="row">${tpls.map(t=>`<button class="btn g xs" data-tpl="${t.id}">${esc(t.name)} <span class="dim">· ${t.totalBars}b</span></button>`).join("")}</div>
+    </div>
+    <div class="card pad" style="margin-bottom:14px">
+      <div class="sec-h">Add a single section</div>
       <div class="row">${presets.map(n=>`<button class="btn g xs" data-addsec="${n}">＋ ${n}</button>`).join("")}</div>
+      <p class="tiny dim" style="margin:8px 0 0">Tip: between sections, add a Rytm fill, an A4 filter move, and an MPC mute drop. Subtract elements before a drop — don't only add.</p>
     </div>
     ${p.sections.length===0
-      ?`<div class="card pad small muted" style="text-align:center;padding:40px">No sections yet — add one above.</div>`
+      ?`<div class="card pad small muted" style="text-align:center;padding:40px">No sections yet — apply a template or add one above.</div>`
       :`<div class="grid g2">${p.sections.map(sectionEditorHTML).join("")}</div>`}`,"projects");
 
+  document.querySelectorAll("[data-tpl]").forEach(el=>el.addEventListener("click",()=>{
+    const t=ARRANGEMENT_TEMPLATES.find(x=>x.id===el.dataset.tpl);if(!t) return;
+    if(p.sections.length && !confirm(`Replace your ${p.sections.length} current section(s) with the "${t.name}" template?`)) return;
+    const secs=t.sections.map(sec=>({id:uid("sec"),name:sec.name,bars:sec.bars,activeDevices:[...sec.devices],
+      drumDensity:sec.drumDensity,bassActivity:sec.bassActivity,melodicActivity:sec.melodicActivity,energy:sec.energy,notes:sec.notes}));
+    updateProject(p.id,proj=>({...proj,sections:secs,knowledge:{...proj.knowledge,arrangementTemplate:t.id}}));
+    UI.arrangeSel=null;route();
+  }));
   document.querySelectorAll("[data-selsec]").forEach(el=>el.addEventListener("click",()=>{UI.arrangeSel=el.dataset.selsec;route();}));
   document.querySelectorAll("[data-addsec]").forEach(el=>el.addEventListener("click",()=>{
     const name=el.dataset.addsec, isHook=/hook|drop|chorus/i.test(name);
@@ -821,26 +1170,37 @@ function sectionEditorHTML(s){
 
 /* ---------- IDEAS ---------- */
 function viewIdeas(p){
-  const cat=UI.ideasCategory;
-  const ideaKey=p.id+":cat:"+cat;
-  if(!UI.lastIdeas[ideaKey]) UI.lastIdeas[ideaKey]=generateIdeas(p,{category:cat,count:5});
+  const cat=UI.ideasCategory, prob=UI.ideasProblem;
+  // When a problem state is chosen, the generator biases toward it; otherwise category.
+  const ideaKey=p.id+":ideas:"+(prob||cat);
+  if(!UI.lastIdeas[ideaKey]) UI.lastIdeas[ideaKey]=generateIdeas(p, prob?{problemId:prob,count:5}:{category:cat,count:5});
   const ideas=UI.lastIdeas[ideaKey];
   const savedTitles=new Set(p.decisions.map(d=>d.text.split(" — ")[0]));
   const options=CREATIVE_OPTIONS.filter(o=>o.category===cat);
   const onStyle=options.filter(o=>o.styleFit==="all"||o.styleFit.includes(p.substyle));
   const ordered=[...onStyle,...options.filter(o=>!onStyle.includes(o))];
+  const genTitle=prob?`"${(STUCK_MAP[prob]||{}).label}" — generated moves`:`${CATEGORY_LABELS[cat]} — generated for this beat`;
   shell(`
     ${projectTabs(p,"ideas")}
-    <h2>Idea bank</h2><p class="small dim" style="margin:0 0 16px">Generate context-aware moves, or browse the full creative library by category</p>
-    ${ideaPanelHTML(p,ideas,`${CATEGORY_LABELS[cat]} — generated for this beat`)}
-    <div class="row" style="margin:16px 0">
+    <h2>Idea bank</h2><p class="small dim" style="margin:0 0 16px">Generate context-aware moves by category, or by an "I'm stuck" problem state. Then browse the full ${CREATIVE_OPTIONS.length}-option library.</p>
+    <div class="card pad" style="margin-bottom:14px">
+      <label class="lbl">I'm stuck on…</label>
+      <div class="row">
+        <button class="chip click ${!prob?"on":""}" data-prob="">— off (browse by category) —</button>
+        ${STUCK_PRESETS.map(s=>`<button class="chip click ${prob===s.id?"on":""}" data-prob="${s.id}">${esc(s.label)}</button>`).join("")}
+      </div>
+    </div>
+    ${ideaPanelHTML(p,ideas,genTitle)}
+    <div class="sec-h" style="margin:18px 0 8px">Browse library by category</div>
+    <div class="row" style="margin:0 0 12px">
       ${CATEGORIES.map(c=>`<button class="chip click ${c===cat?"on":""}" data-cat="${c}">${CATEGORY_LABELS[c]}</button>`).join("")}
     </div>
     <p class="tiny dim">${ordered.length} options · ${onStyle.length} tuned for ${p.substyle.replace(/-/g," ")}</p>
     <div class="grid g3">${ordered.map(o=>optionCardHTML(o,savedTitles.has(o.title))).join("")}</div>`,"projects");
 
-  document.querySelectorAll("[data-cat]").forEach(el=>el.addEventListener("click",()=>{UI.ideasCategory=el.dataset.cat;route();}));
-  bindIdeaPanel(p,{category:cat,ideaKey});
+  document.querySelectorAll("[data-prob]").forEach(el=>el.addEventListener("click",()=>{UI.ideasProblem=el.dataset.prob;route();}));
+  document.querySelectorAll("[data-cat]").forEach(el=>el.addEventListener("click",()=>{UI.ideasProblem="";UI.ideasCategory=el.dataset.cat;route();}));
+  bindIdeaPanel(p, prob?{problemId:prob,ideaKey}:{category:cat,ideaKey});
   bindOptionCards(p.id,undefined);
 }
 
@@ -886,6 +1246,374 @@ function viewHardware(p){
   }));
   document.querySelectorAll("[data-rfield]").forEach(el=>el.addEventListener("change",()=>{
     updateProject(p.id,proj=>({...proj,routing:{...proj.routing,notes:{...proj.routing.notes,[el.dataset.rfield]:el.value}}}));
+  }));
+}
+
+/* ---------- shared: knowledge card + note math ---------- */
+function knowledgeCardHTML(k,saved){
+  const genres=k.genres==="all"?"All substyles":k.genres.map(g=>(SUBSTYLE_MAP[g]||{}).name||g).join(", ");
+  return `<div class="card kb hov" data-kb="${k.id}">
+    <div class="row spread" style="align-items:flex-start;margin-bottom:6px"><h3>${esc(k.title)}</h3>
+      <div class="row" style="gap:4px">${k.devices.map(d=>devChip(d)).join("")}</div></div>
+    <div class="tiny dim" style="margin-bottom:6px">${esc(k.category)} › ${esc(k.subcategory)}</div>
+    <p class="small muted" style="margin:0 0 6px"><b style="color:#cbd2dd">Musical:</b> ${esc(k.musicalPurpose)}</p>
+    <p class="small muted" style="margin:0 0 8px"><b style="color:#cbd2dd">Technical:</b> ${esc(k.technicalPurpose)}</p>
+    <div class="row" style="gap:12px;margin-bottom:8px">${diffDot(k.difficulty)}<span class="tiny dim">⚡ energy ${k.energy}/5</span><span class="tiny dim">${esc(genres)}</span></div>
+    <div class="kb-detail" style="display:none">
+      <div class="tiny" style="font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--dim)">Steps</div>
+      <ol class="steps">${k.steps.map(s=>`<li>${esc(s)}</li>`).join("")}</ol>
+      <div class="tiny" style="font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--dim);margin-top:8px">Variations</div>
+      <ul class="vars">${k.variations.map(s=>`<li>${esc(s)}</li>`).join("")}</ul>
+      <div class="prompt" style="color:#fcd34d;background:rgba(251,191,36,.06);margin-top:8px"><b>⚠</b>${esc(k.caution)}</div>
+      ${sourceNote(k.source)}
+    </div>
+    <div class="row spread" style="margin-top:auto;padding-top:8px">
+      <button class="btn s xs kb-toggle">Show steps</button>
+      <button class="btn ${saved?"g":"p"} xs kb-save" ${saved?"disabled":""}>${saved?"✓ Saved":"Save to project"}</button>
+    </div></div>`;
+}
+function bindKnowledgeCards(projectId){
+  document.querySelectorAll("[data-kb]").forEach(card=>{
+    const k=KNOWLEDGE.find(x=>x.id===card.dataset.kb);
+    card.querySelector(".kb-toggle").addEventListener("click",e=>{
+      const d=card.querySelector(".kb-detail");const open=d.style.display!=="none";
+      d.style.display=open?"none":"block";e.target.textContent=open?"Show steps":"Hide steps";
+    });
+    const save=card.querySelector(".kb-save");
+    if(save&&!save.disabled) save.addEventListener("click",()=>{
+      updateProject(projectId,p=>({...p,knowledge:{...p.knowledge,saved:[k.id,...(p.knowledge.saved||[]).filter(x=>x!==k.id)]}}));
+      saveDecision(projectId,{category:"arrangement",text:`${k.title} — ${k.musicalPurpose} (${k.source.replace(/^Source concept: /,"")})`,device:k.devices[0]});
+      save.textContent="✓ Saved";save.disabled=true;save.classList.remove("p");save.classList.add("g");
+    });
+  });
+}
+const NOTE_NAMES=["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+const NOTE_INDEX={C:0,"C#":1,DB:1,D:2,"D#":3,EB:3,E:4,F:5,"F#":6,GB:6,G:7,"G#":8,AB:8,A:9,"A#":10,BB:10,B:11};
+function scaleNotes(root,formula){
+  const start=NOTE_INDEX[(root||"C").trim().toUpperCase()]??0;
+  const steps={W:2,H:1,"W½":3,"W1.5":3};
+  const out=[NOTE_NAMES[start]];let cur=start;
+  for(const tok of formula.split("–")){
+    const inc=steps[tok.trim()]; if(inc==null) break;
+    cur=(cur+inc)%12; out.push(NOTE_NAMES[cur]);
+  }
+  out.pop(); // last note repeats the root
+  return out;
+}
+
+/* ---------- STUCK MODE ---------- */
+function viewStuck(p){
+  const s=UI.stuck;
+  const energies=[["low","Low"],["medium","Medium"],["high","High"],["chaotic","Chaotic"]];
+  const comps=[["simple","Simple"],["moderate","Moderate"],["advanced","Advanced"]];
+  shell(`
+    ${projectTabs(p,"stuck")}
+    ${sectionTitle("⚡ Stuck Mode","Tell the copilot what's wrong — get targeted moves for ${'right now'}")}
+    <div class="card pad" style="margin-bottom:16px">
+      <div class="grid" style="grid-template-columns:1fr 1fr;gap:14px">
+        <div><label class="lbl">What's the problem?</label>
+          <select class="in" id="sk-problem">${STUCK_PRESETS.map(x=>`<option value="${x.id}" ${x.id===s.problemId?"selected":""}>${esc(x.label)}</option>`).join("")}</select></div>
+        <div><label class="lbl">Devices available</label>
+          <div class="row">${["mpc","rytm","a4"].map(d=>`<button class="chip click ${s.devices.includes(d)?d:""}" data-sk-dev="${d}">${DEVICE_META[d].short}</button>`).join("")}</div></div>
+        <div><label class="lbl">Desired energy</label>
+          <div class="seg" id="sk-energy">${energies.map(([v,l])=>`<button data-v="${v}" class="${s.energy===v?"on":""}">${l}</button>`).join("")}</div></div>
+        <div><label class="lbl">Complexity</label>
+          <div class="seg" id="sk-comp">${comps.map(([v,l])=>`<button data-v="${v}" class="${s.complexity===v?"on":""}">${l}</button>`).join("")}</div></div>
+      </div>
+      <div class="row" style="margin-top:14px"><button class="btn p" id="sk-go">Get unstuck →</button>
+        <span class="tiny dim">Genre: ${esc(SUBSTYLE_MAP[p.substyle].name)} · stage: ${esc(STAGE_MAP[nextStageId(p)].name)}</span></div>
+    </div>
+    <div id="sk-result">${s.result?stuckResultHTML(s.result):`<div class="card pad small dim" style="text-align:center;padding:30px">Pick a problem and hit <b>Get unstuck</b>.</div>`}</div>
+    ${(p.stuckHistory||[]).length?`<div class="card pad" style="margin-top:16px"><div class="sec-h">Recent stuck sessions</div>
+      ${p.stuckHistory.slice(0,6).map(h=>`<div class="tiny muted" style="padding:3px 0">⚡ ${esc((STUCK_MAP[h.problemId]||{}).label||h.problemId)} · ${new Date(h.at).toLocaleString()}</div>`).join("")}</div>`:""}`,"projects");
+
+  document.querySelectorAll("[data-sk-dev]").forEach(b=>b.addEventListener("click",()=>{
+    const d=b.dataset.skDev;const has=s.devices.includes(d);
+    s.devices=has?s.devices.filter(x=>x!==d):[...s.devices,d];route();
+  }));
+  $("#sk-problem").addEventListener("change",e=>{s.problemId=e.target.value;});
+  $("#sk-energy").addEventListener("click",e=>{if(e.target.dataset.v){s.energy=e.target.dataset.v;route();}});
+  $("#sk-comp").addEventListener("click",e=>{if(e.target.dataset.v){s.complexity=e.target.dataset.v;route();}});
+  $("#sk-go").addEventListener("click",()=>{
+    const preset=STUCK_MAP[s.problemId];
+    const ideas=generateIdeas(p,{problemId:s.problemId,devices:s.devices,energy:s.energy,complexity:s.complexity,count:3});
+    s.result={preset,ideas,problemId:s.problemId};
+    updateProject(p.id,proj=>({...proj,stuckHistory:[{problemId:s.problemId,at:Date.now()},...(proj.stuckHistory||[])].slice(0,30)}));
+    route();
+  });
+  bindIdeaSimpleSaves(p.id);
+}
+function stuckResultHTML(r){
+  const pre=r.preset;if(!pre) return "";
+  const block=(title,items)=>`<div class="card pad"><div class="sec-h">${title}</div><ol class="steps">${items.map(i=>`<li>${esc(i)}</li>`).join("")}</ol></div>`;
+  return `<div class="grid g2" style="margin-bottom:14px">
+    ${block("Do these 3 now",pre.immediate)}
+    <div class="card pad"><div class="sec-h">3 device-specific moves</div>
+      <div class="prompt" style="margin-bottom:6px"><b style="color:var(--mpc)">MPC</b>${esc(pre.deviceMoves.mpc)}</div>
+      <div class="prompt" style="margin-bottom:6px"><b style="color:var(--rytm)">Rytm</b>${esc(pre.deviceMoves.rytm)}</div>
+      <div class="prompt"><b style="color:var(--a4)">A4</b>${esc(pre.deviceMoves.a4)}</div></div>
+    ${block("3 musical alternatives",pre.musicalAlternatives)}
+    <div class="card pad"><div class="sec-h">One of each</div>
+      <div class="prompt" style="margin-bottom:6px"><b>📐</b>${esc(pre.arrangementMove)}</div>
+      <div class="prompt" style="margin-bottom:6px"><b>🎛</b>${esc(pre.mixMove)}</div>
+      <div class="prompt" style="color:#6ee7b7;background:rgba(52,211,153,.06)"><b>🎯</b>${esc(pre.constraint)}</div></div>
+  </div>
+  <div class="card pad"><div class="row spread" style="margin-bottom:8px"><span class="sec-h" style="margin:0">Tailored ideas for this exact situation</span></div>
+    <div style="display:flex;flex-direction:column;gap:8px">${r.ideas.map(i=>simpleIdeaHTML(i)).join("")}</div></div>`;
+}
+
+/* simple idea row used by Stuck/Composition/Groove (saves to decisions) */
+function simpleIdeaHTML(i){
+  return `<div style="background:var(--ink-900);border:1px solid var(--ink-700);border-radius:9px;padding:11px" data-sidea='${esc(JSON.stringify({category:i.category,text:i.text,device:i.device}))}'>
+    <div class="row" style="gap:6px;margin-bottom:6px">${pill(CATEGORY_LABELS[i.category]||i.category)}${devChip(i.device||"any")}</div>
+    <p class="small" style="margin:0;color:#cbd2dd">${esc(i.text)}</p>
+    <div style="text-align:right;margin-top:8px"><button class="btn p xs sidea-save">Save idea</button></div></div>`;
+}
+function bindIdeaSimpleSaves(projectId){
+  document.querySelectorAll("[data-sidea]").forEach(el=>{
+    const data=JSON.parse(el.dataset.sidea);
+    el.querySelector(".sidea-save").addEventListener("click",e=>{
+      saveDecision(projectId,data);e.target.textContent="✓ Saved";e.target.disabled=true;
+      e.target.classList.remove("p");e.target.classList.add("s");
+    });
+  });
+}
+
+/* ---------- KNOWLEDGE LIBRARY ---------- */
+function viewKnowledge(p){
+  const cat=UI.kbCategory, dev=UI.kbDevice;
+  let items=KNOWLEDGE;
+  if(cat!=="all") items=items.filter(k=>k.category===cat);
+  if(dev!=="all") items=items.filter(k=>k.devices.includes(dev));
+  const saved=new Set(p.knowledge.saved||[]);
+  shell(`
+    ${projectTabs(p,"knowledge")}
+    ${sectionTitle("Reference-grounded knowledge library","Transformed, actionable guidance — each card cites its source concept")}
+    <div class="card pad" style="margin-bottom:14px">
+      <label class="lbl">Filter by device</label>
+      <div class="row" style="margin-bottom:10px">
+        <button class="chip click ${dev==="all"?"on":""}" data-kbdev="all">All</button>
+        ${["mpc","rytm","a4"].map(d=>`<button class="chip click ${dev===d?d:""}" data-kbdev="${d}">${DEVICE_META[d].full}</button>`).join("")}
+      </div>
+      <label class="lbl">Filter by category</label>
+      <div class="row">
+        <button class="chip click ${cat==="all"?"on":""}" data-kbcat="all">All (${KNOWLEDGE.length})</button>
+        ${KNOWLEDGE_CATEGORIES.filter(c=>KNOWLEDGE.some(k=>k.category===c)).map(c=>`<button class="chip click ${cat===c?"on":""}" data-kbcat="${esc(c)}">${esc(c)}</button>`).join("")}
+      </div>
+    </div>
+    <p class="tiny dim">${items.length} item${items.length===1?"":"s"}</p>
+    <div class="grid g2">${items.map(k=>knowledgeCardHTML(k,saved.has(k.id))).join("")}</div>`,"projects");
+  document.querySelectorAll("[data-kbcat]").forEach(b=>b.addEventListener("click",()=>{UI.kbCategory=b.dataset.kbcat;route();}));
+  document.querySelectorAll("[data-kbdev]").forEach(b=>b.addEventListener("click",()=>{UI.kbDevice=b.dataset.kbdev;route();}));
+  bindKnowledgeCards(p.id);
+}
+
+/* ---------- HARDWARE PLAYBOOKS ---------- */
+function viewPlaybooks(p){
+  const prog=p.knowledge.playbookProgress||{};
+  shell(`
+    ${projectTabs(p,"playbooks")}
+    ${sectionTitle("Hardware Playbooks","Step-by-step workflows for the MPC + Rytm + A4 chain. Check off steps as you go.")}
+    <div class="notice" style="margin-bottom:16px"><b>Suggested workflows.</b> Button paths are summarized from the manuals — confirm exact operations on your own device. The app doesn't control hardware.</div>
+    ${PLAYBOOKS.map(pb=>{
+      const done=Object.keys(prog[pb.id]||{}).filter(k=>prog[pb.id][k]).length;
+      const totalSteps=pb.sections.reduce((a,s)=>a+s.steps.length,0);
+      return `<details class="acc" ${UI.playbookOpen===pb.id?"open":""}>
+        <summary>${pb.device==="all"?"🎚":""}<span style="color:${pb.device==="all"?"var(--accent-soft)":DEVICE_META[pb.device].color}">${esc(pb.title)}</span>
+          <span class="tiny dim" style="margin-left:auto">${done}/${totalSteps} steps</span></summary>
+        <div class="body">
+          <p class="small muted" style="margin-top:0">${esc(pb.summary)}</p>
+          ${pb.sections.map((sec,si)=>`<div style="margin-bottom:12px"><div class="sec-h" style="margin-bottom:6px">${esc(sec.name)}</div>
+            ${sec.steps.map((st,ti)=>{const key=si+"-"+ti;const checked=(prog[pb.id]||{})[key];
+              return `<label class="check ${checked?"done":""}"><input type="checkbox" data-pb="${pb.id}" data-pbkey="${key}" ${checked?"checked":""} style="margin-top:2px"><span style="font-size:13px">${esc(st)}</span></label>`;}).join("")}
+          </div>`).join("")}
+          ${sourceNote(pb.source)}
+        </div></details>`;}).join("")}`,"projects");
+  document.querySelectorAll("details.acc").forEach(d=>d.addEventListener("toggle",()=>{ if(d.open) UI.playbookOpen=d.querySelector("[data-pb]")?.dataset.pb||UI.playbookOpen; }));
+  document.querySelectorAll("[data-pb]").forEach(el=>el.addEventListener("change",()=>{
+    const pb=el.dataset.pb,key=el.dataset.pbkey;
+    UI.playbookOpen=pb;
+    updateProject(p.id,proj=>{
+      const pp={...(proj.knowledge.playbookProgress||{})};
+      pp[pb]={...(pp[pb]||{}),[key]:el.checked};
+      return {...proj,knowledge:{...proj.knowledge,playbookProgress:pp}};
+    });
+  }));
+}
+
+/* ---------- COMPOSITION ---------- */
+function viewComposition(p){
+  const C=COMPOSITION;
+  const projScale=C.scales.find(s=>p.scale&&s.name.toLowerCase().startsWith(p.scale.toLowerCase()))||C.scales[1];
+  let notes=scaleNotes(p.key,projScale.formula);
+  // Scales without a W/H formula (e.g. pentatonic) fall back to scale-degree labels.
+  if(notes.length<2) notes=projScale.degrees.split(/\s+/);
+  const ideas=generateIdeas(p,{category:"chords",count:2}).concat(generateIdeas(p,{category:"bass",count:1}));
+  shell(`
+    ${projectTabs(p,"composition")}
+    ${sectionTitle("Composition Intelligence","Practical theory — every move answers: how does it improve the beat, on which device, simple vs advanced.")}
+    <div class="card pad" style="margin-bottom:14px;border-left:2px solid var(--accent)">
+      <div class="sec-h">Your project key: ${esc(p.key)} ${esc(projScale.name)}</div>
+      <div class="row" style="gap:6px;margin-bottom:8px">${notes.map(n=>`<span class="chip theory">${esc(n)}</span>`).join("")}</div>
+      <p class="small muted" style="margin:0">${esc(projScale.mood)} ${esc(projScale.use)} Map the MPC pads / A4 keyboard to this scale so every note stays in key.</p>
+      ${sourceNote("Source concept: Using Keys in Your DAW — scale mapping; MPC/A4 scale (keyboard) modes constrain notes to the key.")}
+    </div>
+    <div class="grid g2" style="margin-bottom:14px">
+      <div class="card pad"><div class="sec-h">Scales & formulas</div>
+        ${C.scales.map(s=>`<div style="padding:6px 0;border-bottom:1px solid var(--ink-800)"><div class="row spread"><b style="font-size:13px">${esc(s.name)}</b><span class="tiny mono dim">${esc(s.degrees)}</span></div><div class="tiny muted">${esc(s.mood)} ${esc(s.use)}</div></div>`).join("")}
+      </div>
+      <div class="card pad"><div class="sec-h">Key by mood</div>
+        ${C.keyMoods.map(k=>`<div class="prompt" style="margin-bottom:6px"><b>${esc(k.mood)}</b>${esc(k.pick)}</div>`).join("")}
+        <div class="sec-h" style="margin-top:12px">Bassline extraction</div>
+        <ul class="vars">${C.basslineTips.map(t=>`<li>${esc(t)}</li>`).join("")}</ul>
+      </div>
+    </div>
+    <div class="grid g2" style="margin-bottom:14px">
+      <div class="card pad"><div class="sec-h">Triads</div>${C.triads.map(t=>`<div class="row spread" style="padding:3px 0"><b class="small">${esc(t.name)}</b><span class="tiny mono dim">${esc(t.recipe)}</span><span class="tiny muted">${esc(t.sound)}</span></div>`).join("")}</div>
+      <div class="card pad"><div class="sec-h">Seventh / extended chords</div>${C.sevenths.map(t=>`<div class="row spread" style="padding:3px 0"><b class="small">${esc(t.name)}</b><span class="tiny mono dim">${esc(t.recipe)}</span></div><div class="tiny muted" style="margin:-2px 0 4px">${esc(t.sound)}</div>`).join("")}</div>
+    </div>
+    <div class="card pad" style="margin-bottom:14px"><div class="sec-h">Hip-hop progression templates (key-independent)</div>
+      <div class="grid g3">${C.progressions.map(pr=>`<div class="stat"><div class="row spread"><b class="small">${esc(pr.name)}</b></div><div class="mono" style="color:var(--accent-soft);font-size:13px;margin:3px 0">${esc(pr.roman)}</div><div class="tiny muted">${esc(pr.vibe)}</div><div class="tiny dim" style="margin-top:3px">${esc(pr.genres)} · ${esc(pr.device)}</div></div>`).join("")}</div>
+      ${sourceNote("Source concept: Chord Progressions Cheat Sheet — Roman-numeral, transposable progressions.")}
+    </div>
+    <div class="card pad" style="margin-bottom:14px"><div class="sec-h">Advanced harmony moves</div>
+      ${C.harmonyMoves.map(m=>`<details class="acc"><summary><b style="font-size:13px">${esc(m.name)}</b><span class="tiny dim" style="margin-left:auto">${esc(m.what)}</span></summary>
+        <div class="body"><p class="small muted" style="margin-top:0"><b style="color:#cbd2dd">Why:</b> ${esc(m.why)}<br><b style="color:#cbd2dd">How:</b> ${esc(m.how)}</p>
+        <div class="row" style="gap:8px"><span class="chip good">Simple: ${esc(m.simple)}</span></div>
+        <div class="row" style="gap:8px;margin-top:6px"><span class="chip">Advanced: ${esc(m.advanced)}</span></div></div></details>`).join("")}
+      ${sourceNote("Source concept: A Guide to Advanced Harmony — modal mixture, secondary dominants, chromatic mediants, altered dominants, inversions.")}
+    </div>
+    <div class="card pad" style="margin-bottom:14px"><div class="sec-h">Countermelody / counterpoint safety</div>
+      <ul class="vars">${C.counterpointRules.map(r=>`<li>${esc(r)}</li>`).join("")}</ul>
+      ${sourceNote("Source concept: Counterpoint / Fux — line independence, contrary motion, avoiding two busy lines.")}
+    </div>
+    <div class="card pad"><div class="sec-h">Apply it now — ideas for this project</div>
+      <div style="display:flex;flex-direction:column;gap:8px">${ideas.map(i=>simpleIdeaHTML(i)).join("")}</div></div>`,"projects");
+  bindIdeaSimpleSaves(p.id);
+}
+
+/* ---------- GROOVE LAB ---------- */
+function viewGroove(p){
+  // prefer a pattern matching the project substyle
+  let idx=UI.groovePattern;
+  const match=GROOVE.patterns.findIndex(g=>g.genre===p.substyle);
+  if(UI.groovePattern==null||UI.groovePattern>=GROOVE.patterns.length) idx=match>=0?match:0;
+  const gp=GROOVE.patterns[idx];
+  const lane=(label,str,cls)=>`<div class="row" style="gap:8px;margin-bottom:5px;align-items:center"><span class="glabel">${label}</span>
+    <div class="grid16" style="flex:1">${str.split("").map((ch,i)=>`<div class="gstep ${i%4===0?"beat":""} ${ch==="x"?cls:""}"></div>`).join("")}</div></div>`;
+  const ideas=generateIdeas(p,{category:"drums",count:2});
+  shell(`
+    ${projectTabs(p,"groove")}
+    ${sectionTitle("Groove Lab","16-step grids, swing/microtiming, retrigs, and polyrhythm concepts for your rig.")}
+    <div class="card pad" style="margin-bottom:14px">
+      <div class="row" style="gap:6px;margin-bottom:12px">${GROOVE.patterns.map((g,i)=>`<button class="chip click ${i===idx?"on":""}" data-gp="${i}">${esc(g.name)}</button>`).join("")}</div>
+      <div class="row spread" style="margin-bottom:10px"><b style="font-size:14px">${esc(gp.name)}</b><span class="tiny dim">${esc(gp.feel)}</span></div>
+      ${lane("Kick",gp.kick,"gk")}${lane("Snare",gp.snare,"gs")}${lane("Hat",gp.hat,"gh")}${lane("Perc",gp.perc,"gp")}
+      <div class="row tiny dim" style="gap:10px;margin-top:8px"><span>1</span><span style="margin-left:auto">Program on the Rytm; sequence/arrange from the MPC.</span></div>
+      <div class="prompt" style="margin-top:10px"><b>swing</b>${esc(gp.swingNote)}</div>
+      <div class="grid g3" style="margin-top:10px;gap:8px">
+        <div class="stat"><span style="color:#6ee7b7">Safe</span><div class="tiny muted" style="margin-top:4px">${esc(gp.variants.safe)}</div></div>
+        <div class="stat"><span style="color:var(--mpc)">Bouncy</span><div class="tiny muted" style="margin-top:4px">${esc(gp.variants.bouncy)}</div></div>
+        <div class="stat"><span style="color:var(--rytm)">Experimental</span><div class="tiny muted" style="margin-top:4px">${esc(gp.variants.experimental)}</div></div>
+      </div>
+      ${sourceNote("Source concept: Rytm microtiming/retrig + MPC swing/Note Repeat; Polyrhythms cheat sheet for cross-rhythms.")}
+    </div>
+    <div class="grid g2" style="margin-bottom:14px">
+      <div class="card pad"><div class="sec-h">Groove & rhythm concepts</div>
+        ${GROOVE.concepts.map(c=>`<details class="acc"><summary><b style="font-size:13px">${esc(c.name)}</b>${devChip(c.device)}</summary>
+          <div class="body"><p class="small muted" style="margin-top:0"><b style="color:#cbd2dd">What:</b> ${esc(c.what)}<br><b style="color:#cbd2dd">How:</b> ${esc(c.how)}</p>
+          <span class="chip good">Simple: ${esc(c.simple)}</span> <span class="chip" style="margin-top:6px">Advanced: ${esc(c.advanced)}</span></div></details>`).join("")}
+      </div>
+      <div class="card pad"><div class="sec-h">Groove troubleshooting</div>
+        ${GROOVE.troubleshooting.map(t=>`<div class="prompt" style="margin-bottom:6px"><b>→</b>${esc(t)}</div>`).join("")}</div>
+    </div>
+    <div class="card pad"><div class="sec-h">Drum ideas for this project</div>
+      <div style="display:flex;flex-direction:column;gap:8px">${ideas.map(i=>simpleIdeaHTML(i)).join("")}</div></div>`,"projects");
+  document.querySelectorAll("[data-gp]").forEach(b=>b.addEventListener("click",()=>{UI.groovePattern=Number(b.dataset.gp);route();}));
+  bindIdeaSimpleSaves(p.id);
+}
+
+/* ---------- SONG HEALTH ---------- */
+function viewHealth(p){
+  const h=computeHealth(p);
+  updateProject(p.id,proj=>({...proj,healthResult:{pct:h.pct,at:Date.now(),missing:h.missing.map(m=>m.id)}}));
+  const ah=arrangementHealth(p);
+  const overloaded=(p.sections||[]).filter(s=>(s.activeDevices||[]).length>=3&&s.drumDensity==="full"&&s.melodicActivity==="full").length;
+  shell(`
+    ${projectTabs(p,"health")}
+    ${sectionTitle("Song Health Check","A quick diagnostic inferred from your project — with the next move to make.")}
+    <div style="margin-bottom:16px">
+      <div class="card pad row" style="gap:18px;align-items:center;width:100%">
+        <div class="health-ring" style="--p:${h.pct}"><div><b style="font-size:20px">${h.pct}%</b><span class="tiny dim">health</span></div></div>
+        <div style="flex:1">
+          <b style="font-size:15px">${h.pct>=85?"Strong — ready for mix-prep":h.pct>=55?"Coming together — close the gaps":"Early — build the foundations"}</b>
+          <p class="small muted" style="margin:4px 0 8px">${h.total-h.missing.reduce((a,m)=>a+m.weight,0)} / ${h.total} weighted checks passing.</p>
+          ${h.missing[0]
+            ? `<div class="prompt"><b>Next</b>Resolve <b style="color:#fff">${esc(h.missing[0].label)}</b> — ${esc(h.missing[0].fixMusical)}</div>`
+            : `<div class="prompt" style="color:#6ee7b7"><b>✓</b>Everything checks out. Do a rough balance and export.</div>`}
+        </div>
+      </div>
+    </div>
+    ${overloaded?`<div class="notice" style="margin-bottom:14px"><b>Possible overload.</b> ${overloaded} section(s) run full drums + full melody on all devices. Try removing an element so the hook still has somewhere to climb.</div>`:""}
+    <div class="grid g2">
+      <div class="card pad"><div class="sec-h">Checklist</div>
+        ${HEALTH_RULES.map(r=>{const ok=evalHealthRule(p,r.id);
+          return `<div class="check ${ok?"done":""}" style="cursor:default"><span style="margin-top:1px">${ok?"✅":"⬜"}</span><span style="font-size:13px">${esc(r.label)}</span></div>`;}).join("")}
+      </div>
+      <div class="card pad"><div class="sec-h">Recommended moves (${h.missing.length})</div>
+        ${h.missing.length===0?`<p class="small" style="color:#6ee7b7">Nothing missing — nice work.</p>`:
+          h.missing.map(m=>`<details class="acc"><summary><b style="font-size:13px">${esc(m.label)}</b></summary>
+            <div class="body"><div class="prompt" style="margin-bottom:6px"><b style="color:var(--mpc)">device</b>${esc(m.fixDevice)}</div>
+            <div class="prompt" style="margin-bottom:6px"><b style="color:var(--a4)">musical</b>${esc(m.fixMusical)}</div>
+            <div class="prompt"><b>📐</b>${esc(m.fixArrangement)}</div></div></details>`).join("")}
+        ${ah.warns.length?`<div class="sec-h" style="margin-top:12px">Arrangement notes</div>${ah.warns.map(w=>`<div class="prompt" style="color:#fcd34d;background:rgba(251,191,36,.06);margin-bottom:6px"><b>!</b>${esc(w)}</div>`).join("")}`:""}
+      </div>
+    </div>`,"projects");
+}
+
+/* ---------- REFERENCE TRACK ---------- */
+function viewReference(p){
+  const saved=Object.fromEntries((p.referenceAnalysis||[]).map(x=>[x.id,x]));
+  const doneCount=(p.referenceAnalysis||[]).filter(x=>x.done).length;
+  shell(`
+    ${projectTabs(p,"reference")}
+    ${sectionTitle("Reference Track Analysis","Listen actively, note what to borrow conceptually — never copy the audio.")}
+    <div class="card pad" style="margin-bottom:14px"><label class="lbl">Reference track(s)</label>
+      <textarea class="in" rows="2" data-pfield="referenceTracks" placeholder="Artist – Track (for feel/approach only)">${esc(p.referenceTracks)}</textarea>
+      <p class="tiny dim" style="margin:6px 0 0">${doneCount}/${REFERENCE_CHECKLIST.length} aspects analyzed</p>
+    </div>
+    <div class="grid g2">
+      ${REFERENCE_CHECKLIST.map(rc=>{const cur=saved[rc.id]||{};
+        return `<div class="card pad">
+          <label class="check ${cur.done?"done":""}" style="padding:0 0 6px"><input type="checkbox" data-rc="${rc.id}" ${cur.done?"checked":""} style="margin-top:3px"><span style="font-size:13px;font-weight:500">${esc(rc.label)}</span></label>
+          <div class="tiny dim" style="margin:0 0 6px">${esc(rc.hint)}</div>
+          <input class="in" data-rcnote="${rc.id}" value="${esc(cur.note||"")}" placeholder="Your note…">
+        </div>`;}).join("")}
+    </div>
+    <div class="notice" style="margin-top:14px">Borrow the <b>feeling and approach</b> — tempo feel, energy curve, space — not the sounds. ${esc("Originality keeps you clear of copyright.")}</div>`,"projects");
+  bindProjectFields(p.id);
+  const upsert=(id,patch)=>updateProject(p.id,proj=>{
+    const arr=[...(proj.referenceAnalysis||[])];const i=arr.findIndex(x=>x.id===id);
+    if(i<0) arr.push({id,done:false,note:"",...patch}); else arr[i]={...arr[i],...patch};
+    return {...proj,referenceAnalysis:arr};
+  });
+  document.querySelectorAll("[data-rc]").forEach(el=>el.addEventListener("change",()=>{upsert(el.dataset.rc,{done:el.checked});route();}));
+  document.querySelectorAll("[data-rcnote]").forEach(el=>el.addEventListener("change",()=>upsert(el.dataset.rcnote,{note:el.value})));
+}
+
+/* ---------- PRACTICE / LEARNING ---------- */
+function viewPractice(p){
+  const a=p.practiceAnswers||{};
+  shell(`
+    ${projectTabs(p,"practice")}
+    ${sectionTitle("Practice & Learning Mode","Sharpen each track. Answers save to the project.")}
+    <div class="card pad">
+      ${PRACTICE_PROMPTS.map(pp=>`<div style="margin-bottom:12px"><label class="lbl">${esc(pp.label)}</label>
+        <textarea class="in" rows="2" data-practice="${pp.id}" placeholder="${esc(pp.placeholder)}">${esc(a[pp.id]||"")}</textarea></div>`).join("")}
+      ${sourceNote("Source concept: Speed-Learning Checklist & Workflow Cheat Sheet — goal, deadline, references, feedback, review-after-a-break, carry one lesson forward.")}
+    </div>`,"projects");
+  document.querySelectorAll("[data-practice]").forEach(el=>el.addEventListener("change",()=>{
+    updateProject(p.id,proj=>({...proj,practiceAnswers:{...(proj.practiceAnswers||{}),[el.dataset.practice]:el.value}}));
   }));
 }
 
